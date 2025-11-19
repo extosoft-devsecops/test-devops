@@ -1,0 +1,49 @@
+name: Deploy Approval
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        description: "Deploy To"
+        options:
+          - develop
+          - uat
+          - prod
+      image_tag:
+        description: "Docker Image Tag to Deploy (e.g. v1.0.2 or dev-23fd8a)"
+        required: true
+        type: string
+
+jobs:
+  approve-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🚦 Approval required
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ secrets.GITHUB_TOKEN }}
+          approvers: chaihanij
+
+      - name: 📝 Update Helm Tag Before Deploy
+        run: |
+          ENV="${{ github.event.inputs.environment }}"
+          TAG="${{ github.event.inputs.image_tag }}"
+          FILE="k8s/helm/test-devops/values-${ENV}.yaml"
+          echo "🔧 Update: $FILE -> tag: $TAG"
+          sed -i "s/tag:.*/tag: ${TAG}/" "$FILE"
+          git config user.email "bot@github.com"
+          git config user.name "GitHub Deploy Bot"
+          git add "$FILE"
+          git commit -m "Deploy $ENV using $TAG"
+          git push
+
+      - name: 🚀 Deploy via ArgoCD
+        run: |
+          argocd app sync test-devops-app --grpc-web \
+            --server $ARGOCD_SERVER \
+            --auth-token $ARGOCD_TOKEN
+        env:
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          ARGOCD_TOKEN: ${{ secrets.ARGOCD_TOKEN }}

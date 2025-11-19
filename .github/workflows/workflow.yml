@@ -139,7 +139,7 @@ jobs:
       # Security Scan (Trivy)
       # ---------------------------
       - name: Trivy Image Scan
-        uses: aquasecurity/trivy-action@v0.33.1
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           image-ref: ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ env.REPO_NAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           vuln-type: 'os,library'
