@@ -4,12 +4,12 @@ on:
   push:
     branches: [ develop, main ]
     tags:
-      - 'v*.*.*'
+      - 'v*.*.*'     # Semantic Versioning
 
 permissions:
   contents: write
   id-token: write
-  security-events: write   # 🔐 สำหรับ Trivy SARIF (optional)
+  security-events: write   # สำหรับ Trivy SARIF ถ้าใช้ในอนาคต
 
 env:
   REGION: asia-southeast1
@@ -18,69 +18,101 @@ env:
 
 jobs:
   ci:
+    # ป้องกัน GitOps loop: ถ้าเป็น bot ที่ push ไม่ต้องรันซ้ำ
+    if: ${{ github.actor != 'github-actions[bot]' }}
     runs-on: ubuntu-latest
 
     steps:
       # ---------------------------
-      # Checkout Source (Skip CI loop)
+      # Checkout Source
       # ---------------------------
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-        if: github.actor != 'github-actions[bot]'
 
       # ---------------------------
-      # Cache Node Modules
-      # ---------------------------
-      - name: Cache Node Modules
-        uses: actions/cache@v4
-        if: ${{ hashFiles('package-lock.json') != '' }}
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      # ---------------------------
-      # Setup Node
+      # Setup Node + Cache
       # ---------------------------
       - name: Setup Node
         if: ${{ hashFiles('package.json') != '' }}
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
 
       # ---------------------------
-      # Lint + Test
+      # Install Dependencies
       # ---------------------------
       - name: Install Dependencies
-        run: npm ci
-
-      - name: Run Linter
-        run: npm run lint --if-present
-
-      - name: Unit Tests
-        run: npm test --if-present
+        run: |
+          if [ -f "package.json" ]; then
+            npm ci
+          else
+            echo "No package.json found, skip npm install."
+          fi
 
       # ---------------------------
-      # Set CI Variables
+      # Lint
+      # ---------------------------
+      - name: Run Linter
+        run: |
+          if [ -f "package.json" ]; then
+            npm run lint --if-present
+          else
+            echo "No package.json found, skip lint."
+          fi
+
+      # ---------------------------
+      # Unit Tests
+      # ---------------------------
+      - name: Unit Tests
+        run: |
+          if [ -f "package.json" ]; then
+            npm test --if-present
+          else
+            echo "No package.json found, skip tests."
+          fi
+
+      # ---------------------------
+      # Set CI Variables (IMAGE_TAG + ENV)
       # ---------------------------
       - name: Set CI Variables
         id: vars
         run: |
-          SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)
+          SHORT_SHA=$(echo "$GITHUB_SHA" | cut -c1-7)
+
+          # Default
+          IMAGE_TAG=""
+          ENV=""
+
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            # Production tags (v1.0.0 ฯลฯ)
             IMAGE_TAG="${GITHUB_REF_NAME}"
           elif [[ "${GITHUB_REF_NAME}" == "develop" ]]; then
             IMAGE_TAG="dev-${SHORT_SHA}"
+            ENV="develop"
           elif [[ "${GITHUB_REF_NAME}" == "main" ]]; then
             IMAGE_TAG="uat-${SHORT_SHA}"
+            ENV="uat"
+          else
+            echo "⚠ Unsupported ref: ${GITHUB_REF_TYPE} / ${GITHUB_REF_NAME}"
           fi
+
+          if [[ -z "$IMAGE_TAG" ]]; then
+            echo "❌ IMAGE_TAG is empty, abort."
+            exit 1
+          fi
+
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+          echo "ENV=$ENV" >> $GITHUB_ENV
+
+          echo "✅ IMAGE_TAG = $IMAGE_TAG"
+          echo "✅ ENV       = $ENV"
 
       # ---------------------------
-      # GCP Auth
+      # GCP Auth (Workload Identity Federation)
       # ---------------------------
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
@@ -89,44 +121,71 @@ jobs:
           service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
       - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
       # ---------------------------
       # Build Docker Image
       # ---------------------------
       - name: Build Docker Image
+        env:
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
         run: |
-          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ env.REPO_NAME }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG} .
+          echo "🔨 Building image with tag: ${IMAGE_TAG}"
+          docker build \
+            -t ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ env.REPO_NAME }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG} .
 
       # ---------------------------
       # Security Scan (Trivy)
       # ---------------------------
       - name: Trivy Image Scan
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
-          image-ref: ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ env.REPO_NAME }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}
+          image-ref: ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ env.REPO_NAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
 
       # ---------------------------
       # Push to Artifact Registry
       # ---------------------------
       - name: Push Docker Image
+        env:
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
         run: |
+          echo "📦 Pushing image: ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ env.REPO_NAME }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}"
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ env.REPO_NAME }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}
 
       # ---------------------------
-      # Update GitOps Manifests (Safe)
+      # Update GitOps Manifests (develop/uat only)
       # ---------------------------
       - name: Update GitOps manifest
-        if: github.ref_type == 'branch' && github.actor != 'github-actions[bot]'
+        if: github.ref_type == 'branch'
+        env:
+          ENV: ${{ env.ENV }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
         run: |
-          echo "Updating GitOps manifest for ${GITHUB_REF_NAME}"
-          FILE="k8s/${GITHUB_REF_NAME}/values.yaml"
-          if [ ! -f "$FILE" ]; then echo "❌ Missing $FILE"; exit 1; fi
-          sed -i "s/tag:.*/tag: ${IMAGE_TAG}/" "$FILE"
+          if [[ -z "$ENV" ]]; then
+            echo "ℹ️ No ENV mapping for branch ${GITHUB_REF_NAME}, skip GitOps update."
+            exit 0
+          fi
+
+          echo "Updating GitOps manifest for branch: ${GITHUB_REF_NAME}"
+          echo "🚀 GitOps target environment = ${ENV}"
+
+          VALUES_FILE="k8s/helm/test-devops/values-${ENV}.yaml"
+
+          if [[ ! -f "$VALUES_FILE" ]]; then
+            echo "❌ Missing environment values file: $VALUES_FILE"
+            exit 1
+          fi
+
+          echo "📝 Set image tag to ${IMAGE_TAG} in ${VALUES_FILE}"
+          sed -i "s|tag:.*|tag: ${IMAGE_TAG}|g" "$VALUES_FILE"
+
           git config user.email "bot@github.com"
           git config user.name "GitHub Actions Bot"
-          git add "$FILE"
-          git commit -m "Update image tag to ${IMAGE_TAG}" || echo "No changes to commit"
+
+          git add "$VALUES_FILE"
+          git commit -m "GitOps: Update ${ENV} to image tag ${IMAGE_TAG}" || echo "ℹ️ No changes to commit"
           git push

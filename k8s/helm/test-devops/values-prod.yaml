@@ -1,0 +1,5 @@
+image:
+  tag: latest
+
+app:
+  replicaCount: 1
