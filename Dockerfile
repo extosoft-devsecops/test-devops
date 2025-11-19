@@ -1,61 +1,74 @@
 # ==========================================
-# Stage 1: Base Builder
+# Stage 0: Base Dependencies (Cache Optimized)
 # ==========================================
 FROM node:18-alpine AS base
 WORKDIR /app
 
-# Only copy package metadata first (cache layer)
+# Improve native module compatibility
+RUN apk add --no-cache libc6-compat
+
+# Copy only package metadata first to leverage caching
 COPY package.json package-lock.json* ./
 
 ARG NODE_ENV=production
 ENV NODE_ENV=$NODE_ENV
 
-# Install dependencies (prod-only or all deps depending on env)
+# Install dependencies (prod or full)
 RUN if [ "$NODE_ENV" = "production" ]; then \
-        npm install --omit=dev; \
+        npm ci --omit=dev && npm cache clean --force; \
     else \
-        npm install; \
+        npm ci && npm cache clean --force; \
     fi
 
-# Copy source code
+# Copy only required app source
 COPY . .
 
 
 # ==========================================
-# Stage 2: Development Runner
-# Only used when running locally
+# Stage 1: Development Runtime
+# For localhost development only
 # ==========================================
 FROM node:18-alpine AS development
 WORKDIR /app
 
-# Install full dev dependencies
 COPY package.json package-lock.json* ./
-RUN npm install
+RUN npm ci
 
 COPY . .
 
+EXPOSE 3000
 CMD ["npm", "run", "dev"]
 
 
 # ==========================================
-# Stage 3: Production Runner
+# Stage 2: Production Runtime
 # Clean, secure, minimal
 # ==========================================
 FROM node:18-alpine AS production
 WORKDIR /app
 
-# Copy ONLY needed files from builder
+# Add minimal tools needed for healthcheck
+RUN apk add --no-cache wget
+
+# Copy application from build stage
 COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app ./
 
+# Environment
 ENV NODE_ENV=production
 
-# Recommended: non-root user
+# Security: add non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 
-# Healthcheck
-HEALTHCHECK --interval=10s --timeout=3s --retries=3 \
-  CMD node -e "require('dns').lookup('localhost', err => { if (err) process.exit(1) })"
+# ==========================================
+# Healthcheck (using wget instead of curl for smaller footprint)
+# ==========================================
+HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget -qO- http://localhost:3000/healthz >/dev/null || exit 1
 
+EXPOSE 3000
+
+
+# Start Production App
 CMD ["node", "index.js"]

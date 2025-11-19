@@ -1,24 +1,28 @@
 services:
   app:
+    container_name: test-devops-app
     build:
       context: .
       dockerfile: Dockerfile
       args:
         NODE_ENV: development
-    container_name: test-devops-app
     environment:
       NODE_ENV: development
+      PORT: 3000
       STATSD_HOST: graphite
       STATSD_PORT: 8125
+    ports:
+      - "3000:3000"
     depends_on:
-      graphite:
-        condition: service_healthy
+      - graphite
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "node", "-v" ]
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:3000/healthz || exit 1" ]
       interval: 10s
       timeout: 3s
       retries: 3
+    networks:
+      - local-test-devops-network
 
   graphite:
     image: graphiteapp/graphite-statsd:latest
@@ -29,12 +33,12 @@ services:
       - "8125:8125/udp"
       - "8126:8126"
     volumes:
-      - graphite_data:/opt/graphite/storage
-    healthcheck:
-      test: [ "CMD", "nc", "-z", "localhost", "80" ]
-      interval: 10s
-      timeout: 3s
-      retries: 5
+      - local-graphite-data:/opt/graphite/storage
+    networks:
+      - local-test-devops-network
 
 volumes:
-  graphite_data:
+  local-graphite-data:
+
+networks:
+  local-test-devops-network:
