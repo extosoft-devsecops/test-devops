@@ -132,8 +132,7 @@ jobs:
           IMAGE_TAG: ${{ env.IMAGE_TAG }}
         run: |
           echo "🔨 Building image with tag: ${IMAGE_TAG}"
-          docker buildx build --platform linux/amd64,linux/arm64  \
-            -t ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ env.REPO_NAME }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG} .
+          docker buildx build --platform linux/amd64,linux/arm64 -t ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ env.REPO_NAME }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG} .
 
       # ---------------------------
       # Security Scan (Trivy)
