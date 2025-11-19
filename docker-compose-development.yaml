@@ -1,0 +1,36 @@
+services:
+  app:
+    image: asia-southeast1-docker.pkg.dev/test-devops-478606/test-devops-images:latest
+    container_name: test-devops-app
+    environment:
+      NODE_ENV: development
+      STATSD_HOST: graphite
+      STATSD_PORT: 8125
+    depends_on:
+      graphite:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "node", "-v" ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  graphite:
+    image: graphiteapp/graphite-statsd:latest
+    container_name: graphite
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+      - "8125:8125/udp"
+      - "8126:8126"
+    volumes:
+      - graphite_data:/opt/graphite/storage
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "localhost", "80" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  graphite_data:

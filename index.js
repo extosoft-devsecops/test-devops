@@ -1,28 +1,58 @@
-const lynx = require('lynx');
+const Lynx = require('lynx');
 
-// instantiate a metrics client
-//  Note: the metric hostname is now configurable via env
-const metrics = new lynx(
-  process.env.STATSD_HOST || 'localhost',
-  parseInt(process.env.STATSD_PORT || '8125', 10)
-);
+const STATSD_HOST = process.env.STATSD_HOST || 'localhost';
+const STATSD_PORT = parseInt(process.env.STATSD_PORT || '8125', 10);
 
-// sleep for a given number of milliseconds
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+// Create metrics client
+const metrics = new Lynx(STATSD_HOST, STATSD_PORT, {
+    on_error: (err) => console.error('StatsD Error:', err),
+});
+
+// Sleep utility
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function sendMetric() {
+    try {
+        const delay = Math.floor(Math.random() * 1000);
+        metrics.timing('test.core.delay', delay);
+        console.log(`📊 Sent metric: test.core.delay = ${delay}ms`);
+    } catch (err) {
+        console.error('❌ Failed to send metric:', err);
+    }
+
+    await sleep(3000);
 }
 
-async function main() {
-  // send message to the metrics server
-  metrics.timing('test.core.delay', Math.random() * 1000);
+async function mainLoop() {
+    console.log("🚀 App started. Sending metrics to StatsD...");
+    console.log(`📡 STATSD: ${STATSD_HOST}:${STATSD_PORT}`);
 
-  // sleep for a random number of milliseconds to avoid flooding metrics server
-  return sleep(3000);
+    while (running) {
+        await sendMetric();
+    }
+
+    console.log("🛑 Main loop stopped.");
 }
 
-// infinite loop
-(async () => {
-  console.log("🚀🚀🚀");
-  while (true) { await main() }
-})()
-  .then(console.log, console.error);
+// Graceful shutdown handler
+let running = true;
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+
+function shutdown(signal) {
+    console.log(`\n⚠️ Received ${signal}, shutting down...`);
+    running = false;
+
+    // Give metric client time to flush
+    setTimeout(() => {
+        metrics.close();
+        console.log("✨ Clean exit.");
+        process.exit(0);
+    }, 500);
+}
+
+// Start
+mainLoop().catch((err) => {
+    console.error('❌ Unexpected error:', err);
+    process.exit(1);
+});

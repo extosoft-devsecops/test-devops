@@ -1,34 +1,61 @@
-# Base image
-FROM node:20-alpine AS base
+# ==========================================
+# Stage 1: Base Builder
+# ==========================================
+FROM node:18-alpine AS base
+WORKDIR /app
 
-WORKDIR /usr/src/app
+# Only copy package metadata first (cache layer)
+COPY package.json package-lock.json* ./
 
-# Copy package files
-COPY package*.json ./
-
-# ให้รองรับหลาย environment ผ่าน build arg
-# ค่า default = production
 ARG NODE_ENV=production
-ENV NODE_ENV=${NODE_ENV}
+ENV NODE_ENV=$NODE_ENV
 
-# ติดตั้ง dependency ตาม NODE_ENV
-# - ถ้า production จะตัด devDependencies ออก
-# - ถ้า dev/test จะติดตั้งทั้งหมด
+# Install dependencies (prod-only or all deps depending on env)
 RUN if [ "$NODE_ENV" = "production" ]; then \
-      npm ci --omit=dev; \
+        npm install --omit=dev; \
     else \
-      npm install; \
+        npm install; \
     fi
 
 # Copy source code
 COPY . .
 
-# Expose port เผื่อ app มี HTTP server (เช่น 3000)
-EXPOSE 3000
 
-# Env ที่ใช้บ่อยสำหรับส่ง metrics ไป StatsD/Graphite
-ENV STATSD_HOST=graphite \
-    STATSD_PORT=8125
+# ==========================================
+# Stage 2: Development Runner
+# Only used when running locally
+# ==========================================
+FROM node:18-alpine AS development
+WORKDIR /app
 
-# รันแอป
+# Install full dev dependencies
+COPY package.json package-lock.json* ./
+RUN npm install
+
+COPY . .
+
+CMD ["npm", "run", "dev"]
+
+
+# ==========================================
+# Stage 3: Production Runner
+# Clean, secure, minimal
+# ==========================================
+FROM node:18-alpine AS production
+WORKDIR /app
+
+# Copy ONLY needed files from builder
+COPY --from=base /app/node_modules ./node_modules
+COPY --from=base /app ./
+
+ENV NODE_ENV=production
+
+# Recommended: non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
+
+# Healthcheck
+HEALTHCHECK --interval=10s --timeout=3s --retries=3 \
+  CMD node -e "require('dns').lookup('localhost', err => { if (err) process.exit(1) })"
+
 CMD ["node", "index.js"]
