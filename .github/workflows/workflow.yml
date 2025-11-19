@@ -146,6 +146,14 @@ jobs:
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
 
+
+      # ---------------------------
+      # Verify GCP Access Token
+      # ---------------------------
+      - name: Verify access token
+        run: |
+          gcloud auth print-access-token --impersonate-service-account=${{ secrets.WIF_SERVICE_ACCOUNT }} | head
+
       # ---------------------------
       # Push to Artifact Registry
       # ---------------------------
