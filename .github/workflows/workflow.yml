@@ -114,6 +114,10 @@ jobs:
             -t ${IMAGE_URI} \
             . \
             --push
+          
+          echo "✅ Build & Push completed."
+          echo "IMAGE_URI=${IMAGE_URI}" >> $GITHUB_OUTPUT
+          echo "IMAGE_URI=${IMAGE_URI}" >> $GITHUB_ENV
 
       # ---------------------------
       # Trivy Scan
@@ -121,7 +125,7 @@ jobs:
       - name: Trivy Scan
         uses: aquasecurity/trivy-action@0.33.1
         with:
-          image-ref: ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ env.REPO_NAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          image-ref: ${IMAGE_URI}
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
