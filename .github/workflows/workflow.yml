@@ -125,7 +125,7 @@ jobs:
       - name: Trivy Scan
         uses: aquasecurity/trivy-action@0.33.1
         with:
-          image-ref: ${IMAGE_URI}
+          image-ref: ${{ env.IMAGE_URI }}
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
