@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"PASS\" && exit 0"
+    "test": "echo \"PASS\" && exit 0",
+    "lint": "echo \"No linting configured\" && exit 0"
   },
   "author": "",
   "license": "UNLICENSED",

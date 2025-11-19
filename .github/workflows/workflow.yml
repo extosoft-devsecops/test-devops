@@ -1,0 +1,144 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ develop, main ]
+    tags:
+      - 'v*.*.*'     # Semantic Versioning
+
+permissions:
+  contents: write
+  id-token: write
+
+env:
+  REGION: asia-southeast1
+  REPO_NAME: test-devops-images
+  IMAGE_NAME: test-devops
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ---------------------------
+      # Checkout Source
+      # ---------------------------
+      - name: Checkout
+        uses: actions/checkout@v4
+
+
+      # ---------------------------
+      # Detect Languages & Setup Tools
+      # ---------------------------
+      - name: Setup Node
+        if: ${{ hashFiles('package.json') != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      # ---------------------------
+      # Lint
+      # ---------------------------
+      - name: Run Linter
+        run: |
+          npm ci
+          npm run lint || true
+        
+
+
+      # ---------------------------
+      # Unit Test
+      # ---------------------------
+      - name: Unit Tests
+        run: |
+          npm run test
+        
+
+      # ---------------------------
+      # Set Environment Variables
+      # ---------------------------
+      - name: Set CI Variables
+        id: vars
+        run: |
+          SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)
+
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            # For production tags
+            IMAGE_TAG="${GITHUB_REF_NAME}"
+          else
+            # Branch images
+            if [[ "${GITHUB_REF_NAME}" == "develop" ]]; then
+              IMAGE_TAG="dev-${SHORT_SHA}"
+            elif [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+              IMAGE_TAG="uat-${SHORT_SHA}"
+            fi
+          fi
+
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+          echo "IMAGE_TAG=$IMAGE_TAG"
+
+      # ---------------------------
+      # GCP Authentication (WIF)
+      # ---------------------------
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+
+      # ---------------------------
+      # Docker Build
+      # ---------------------------
+      - name: Build Docker Image
+        run: |
+          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ env.REPO_NAME }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG} .
+
+
+      # ---------------------------
+      # Security Scan (Trivy)
+      # ---------------------------
+      - name: Trivy Security Scan
+        uses: aquasecurity/trivy-action@v0.33.1
+        with:
+          image-ref: '${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ env.REPO_NAME }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}'
+          vuln-type: 'os,library'
+          severity: 'HIGH,CRITICAL'
+
+
+      # ---------------------------
+      # Push Image to Artifact Registry
+      # ---------------------------
+      - name: Push Docker Image
+        run: |
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ env.REPO_NAME }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}
+
+
+      # ---------------------------
+      # Update GitOps Manifests
+      # (Only develop/main)
+      # ---------------------------
+      - name: Update GitOps manifest
+        if: github.ref_type == 'branch'
+        run: |
+          echo "Updating GitOps manifest for ${GITHUB_REF_NAME}"
+          
+          VALUES_FILE="k8s/${GITHUB_REF_NAME}/values.yaml"
+          
+          if [ ! -f "$VALUES_FILE" ]; then
+            echo "❌ ERROR: $VALUES_FILE not found!"
+            exit 1
+          fi
+
+          sed -i "s/tag:.*/tag: ${IMAGE_TAG}/" "$VALUES_FILE"
+
+          git config user.email "bot@github.com"
+          git config user.name "GitHub Actions Bot"
+
+          git add "$VALUES_FILE"
+          git commit -m "Update image tag to ${IMAGE_TAG}"
+          git push
