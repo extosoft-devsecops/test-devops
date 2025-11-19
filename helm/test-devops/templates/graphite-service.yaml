@@ -16,6 +16,19 @@ spec:
       {{- if eq .Values.graphite.serviceType "NodePort" }}
       nodePort: {{ .Values.graphite.nodePort }}
       {{- end }}
+---
+{{- if .Values.graphite.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: graphite-statsd
+  labels:
+    app: graphite
+spec:
+  type: ClusterIP
+  selector:
+    app: graphite
+  ports:
     - name: statsd
       port: 8125
       targetPort: 8125
@@ -23,4 +36,5 @@ spec:
     - name: statsd-admin
       port: 8126
       targetPort: 8126
+{{- end }}
 {{- end }}

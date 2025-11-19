@@ -3,11 +3,14 @@ kind: Service
 metadata:
   name: test-devops-app
   labels:
-    app: test-devops-app
+    app: {{ include "test-devops.name" . }}
+  annotations:
+    cloud.google.com/backend-config: '{"ports": {"80": "test-devops-backend-config"}}'
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   selector:
-    app: test-devops-app
+    app: {{ include "test-devops.name" . }}
+    component: app
   ports:
     - name: http
       port: 80

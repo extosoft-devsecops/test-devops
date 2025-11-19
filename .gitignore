@@ -181,3 +181,13 @@ target/
 # Application specific
 data/
 logs/
+
+# Terraform files
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfplan.*
+.terraformrc
+terraform.rc
