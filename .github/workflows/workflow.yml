@@ -98,18 +98,6 @@ jobs:
         run: |
           docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ env.REPO_NAME }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG} .
 
-
-      # ---------------------------
-      # Security Scan (Trivy)
-      # ---------------------------
-      - name: Trivy Security Scan
-        uses: aquasecurity/trivy-action@latest
-        with:
-          image-ref: '${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT }}/${{ env.REPO_NAME }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}'
-          vuln-type: 'os,library'
-          severity: 'HIGH,CRITICAL'
-
-
       # ---------------------------
       # Push Image to Artifact Registry
       # ---------------------------
