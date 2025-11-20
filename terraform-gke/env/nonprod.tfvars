@@ -1,0 +1,7 @@
+project_id    = "test-devops-478606"
+region        = "us-central1"
+cluster_name  = "gke-nonprod"
+network_name  = "nonprod-network"
+subnet_name   = "nonprod-subnet"
+subnet_cidr   = "10.10.0.0/24"
+office_ip     = "203.0.113.52/32"
