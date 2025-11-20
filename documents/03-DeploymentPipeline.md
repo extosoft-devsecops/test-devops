@@ -99,7 +99,7 @@ flowchart TD
 %% -------- Push Tag -------- %%
     subgraph Tag_Flow ["Release CI Only Tag (vX.Y.Z)"]
         T1[Push Tag v*.*.*] --> T2[Build Image]
-        T2 --> T3[SBOM + Sign + Scan]
+        T2 --> T3[มฝมมมม SBOM + Sign + Scan]
         T3 --> T4[Ready for Manual Deploy]
     end
 
