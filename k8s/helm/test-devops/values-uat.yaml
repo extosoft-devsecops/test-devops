@@ -1,5 +1,5 @@
 image:
-  tag: uat-28f1ef7
+  tag: uat-6c3ee8a
 
 app:
   replicaCount: 1
