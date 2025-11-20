@@ -1,5 +1,0 @@
-image:
-  tag: uat-c77f1b2
-
-app:
-  replicaCount: 1
