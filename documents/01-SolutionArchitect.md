@@ -18,12 +18,12 @@
 - Secrets management (DB credentials, API keys)
 - Dynamic secrets (optional)
 
-5. GKE + EKS (NONPROD + PROD)
+5. GKE + EKS (NON PROD + PROD)
 - Workload clusters multi-cloud
 - Each cluster installs:
 - ArgoCD agent
 - Vault Agent Injector (Sidecar)
-- Datadog Agent (Daemonset)
+- Datadog Agent (Daemon set)
 
 6. Cloudflare Global Load Balancer + WAF
 - Anycast Load Balancer (Global)
