@@ -30,7 +30,6 @@ provider "google" {
 
 data "google_client_config" "default" {}
 
-
 ########################################
 # Network (VPC + Subnet)
 ########################################
@@ -46,7 +45,6 @@ resource "google_compute_subnetwork" "main" {
   region        = var.region
   network       = google_compute_network.main.id
 }
-
 
 ########################################
 # GKE Clusters (Zonal)
@@ -82,12 +80,14 @@ resource "google_container_node_pool" "prod_nodes" {
   cluster  = google_container_cluster.prod.name
   location = local.gke_zone
 
-  node_count = 2
+  # initial node count
+  node_count = 3
 
   node_config {
-    machine_type = "e2-medium"
+    # 4 vCPU / 16GB
+    machine_type = "e2-standard-4"
     disk_type    = "pd-standard"
-    disk_size_gb = 20
+    disk_size_gb = 50
 
     oauth_scopes = ["https://www.googleapis.com/auth/cloud-platform"]
 
@@ -97,8 +97,8 @@ resource "google_container_node_pool" "prod_nodes" {
   }
 
   autoscaling {
-    min_node_count = 1
-    max_node_count = 5
+    min_node_count = 3
+    max_node_count = 10
   }
 }
 
@@ -131,9 +131,10 @@ resource "google_container_node_pool" "nonprod_nodes" {
   node_count = 1
 
   node_config {
-    machine_type = "e2-small"
+    # 4 vCPU / 16GB
+    machine_type = "e2-standard-4"
     disk_type    = "pd-standard"
-    disk_size_gb = 20
+    disk_size_gb = 50
 
     oauth_scopes = ["https://www.googleapis.com/auth/cloud-platform"]
 
@@ -147,7 +148,6 @@ resource "google_container_node_pool" "nonprod_nodes" {
     max_node_count = 3
   }
 }
-
 
 ########################################
 # Kubernetes Providers (Per Cluster)
@@ -166,7 +166,6 @@ provider "kubernetes" {
   token                  = data.google_client_config.default.access_token
   cluster_ca_certificate = base64decode(google_container_cluster.nonprod.master_auth[0].cluster_ca_certificate)
 }
-
 
 ########################################
 # Helm Providers
@@ -190,21 +189,23 @@ provider "helm" {
   }
 }
 
-
 ########################################
 # Namespaces
 ########################################
 
 resource "kubernetes_namespace" "prod_app" {
   provider = kubernetes.prod
-  metadata { name = "prod-app" }
+  metadata { 
+    name = "prod-app" 
+  }
 }
 
 resource "kubernetes_namespace" "nonprod_app" {
   provider = kubernetes.nonprod
-  metadata { name = "nonprod-app" }
+  metadata { 
+    name = "nonprod-app" 
+  }
 }
-
 
 ########################################
 # Helm Release (Prod)
@@ -232,20 +233,20 @@ resource "helm_release" "prod_app" {
 
       app = {
         replicaCount = 1
-        port = 3000
+        port         = 3000
         env = {
-          NODE_ENV = "production"
+          NODE_ENV    = "production"
           STATSD_HOST = "graphite"
           STATSD_PORT = "8125"
         }
       }
 
       graphite = {
-        enabled = true
-        image = "graphiteapp/graphite-statsd"
-        tag = "latest"
-        webPort = 80
-        serviceType = "LoadBalancer"
+        enabled      = true
+        image        = "graphiteapp/graphite-statsd"
+        tag          = "latest"
+        webPort      = 80
+        serviceType  = "LoadBalancer"
       }
 
       env = "production"
@@ -254,7 +255,7 @@ resource "helm_release" "prod_app" {
         enabled   = true
         className = "gce"
         hosts = [{
-          host = var.prod_ingress_host
+          host  = var.prod_ingress_host
           paths = [{ path = "/", pathType = "Prefix" }]
         }]
       }
@@ -263,7 +264,6 @@ resource "helm_release" "prod_app" {
 
   depends_on = [google_container_node_pool.prod_nodes]
 }
-
 
 ########################################
 # Helm Release (Non-Prod)
@@ -291,20 +291,20 @@ resource "helm_release" "nonprod_app" {
 
       app = {
         replicaCount = 1
-        port = 3000
+        port         = 3000
         env = {
-          NODE_ENV = "non-production"
+          NODE_ENV    = "non-production"
           STATSD_HOST = "graphite"
           STATSD_PORT = "8125"
         }
       }
 
       graphite = {
-        enabled = true
-        image = "graphiteapp/graphite-statsd"
-        tag = "latest"
-        webPort = 80
-        serviceType = "LoadBalancer"
+        enabled      = true
+        image        = "graphiteapp/graphite-statsd"
+        tag          = "latest"
+        webPort      = 80
+        serviceType  = "LoadBalancer"
       }
 
       env = "non-production"
@@ -313,7 +313,7 @@ resource "helm_release" "nonprod_app" {
         enabled   = true
         className = "gce"
         hosts = [{
-          host = var.nonprod_ingress_host
+          host  = var.nonprod_ingress_host
           paths = [{ path = "/", pathType = "Prefix" }]
         }]
       }
@@ -322,7 +322,6 @@ resource "helm_release" "nonprod_app" {
 
   depends_on = [google_container_node_pool.nonprod_nodes]
 }
-
 
 # ########################################
 # # Ingress Resources - Removed in favor of LoadBalancer services
