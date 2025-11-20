@@ -8,6 +8,11 @@ variable "region" {
   type        = string
 }
 
+variable "zone" {
+  description = "Cluster region (or primary location)"
+  type        = string
+}
+
 variable "cluster_name" {
   description = "GKE cluster name"
   type        = string
