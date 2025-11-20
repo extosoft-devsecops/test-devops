@@ -1,83 +1,77 @@
-# Implement Plan
+# Implementation Plan
+
+## Architecture Components
 
 1. GitHub + GitHub Actions (CI)
 2. GCP Artifact Registry
-3. ArgoCD + Codefresh (GitOps)
-4. HCP Vault (Secrets Management)
-5. Multi-Cloud Kubernetes
-    - GKE Clusters (NONPROD, PROD)
-    - EKS Clusters (NONPROD, PROD)
-6. Cloudflare (Global Load Balancer, WAF Policies)
-7. Datadog (Monitoring & Logging) Agents
+3. ArgoCD + Codefresh (GitOps Deployment)
+4. HCP Vault (Centralized Secrets Management)
+5. Multi-Cloud Kubernetes Clusters
+   - Google GKE (NON-PROD, PROD)
+   - AWS EKS (NON-PROD, PROD)
+6. Cloudflare (Global Load Balancer + WAF Security Layer)
+7. Datadog (Monitoring, Logging, and APM)
 
-## 1. GitHub + GitHub Actions (CI)
+### 1. GitHub + GitHub Actions (Continuous Integration)
+1. Create and manage application repositories in GitHub.
+2. Configure CI pipelines using GitHub Actions.
+3. Integrate CI pipelines with GCP Artifact Registry for container image publishing.
+4. Enable automated linting, unit tests, and code quality scanning.
+5. Enforce branch protection policies and mandatory code review approval.
+6. Document CI standards, workflows, and developer guidelines.
 
-1. Set up a GitHub repository for the application code.
-2. Configure GitHub Actions workflows for CI pipelines.
-3. Integrate with GCP Artifact Registry for container image storage.
-4. Set up automated testing and code quality checks.
-5. Implement branch protection rules and code review processes.
-6. Document CI processes and workflows.
+### 2. GCP Artifact Registry
+1. Provision a GCP project dedicated to Artifact Registry usage.
+2. Enable required GCP APIs (Artifact Registry, IAM, etc.).
+3. Create repositories for hosting Docker images.
+4. Configure IAM roles and access controls for secure image management.
+5. Connect GitHub Actions to Artifact Registry for automated image pushes.
+6. Provide documentation outlining image management and repository usage policies.
 
-## 2. GCP Artifact Registry
+### 3. ArgoCD + Codefresh (GitOps Deployment)
+1. Deploy ArgoCD in a dedicated Kubernetes cluster for centralized control.
+2. Configure Codefresh to integrate with GitOps workflows.
+3. Define ArgoCD applications responsible for cluster deployments.
+4. Establish GitHub integration for automatic deployment on manifest updates.
+5. Set up monitoring and alerting for deployment failures or drift detection.
+6. Document GitOps standards, workflow diagrams, and ArgoCD operation guidelines.
 
-1. Create a GCP project for the Artifact Registry.
-2. Enable the Artifact Registry API in the GCP project.
-3. Set up Artifact Registry repositories for Docker images.
-4. Configure access controls and permissions for the Artifact Registry.
-5. Integrate Artifact Registry with GitHub Actions for automated image pushes.
-6. Document the Artifact Registry setup and usage guidelines.
 
-## 3. ArgoCD + Codefresh (GitOps)
+### 4. HCP Vault (Secrets Management)
+1. Deploy HCP Vault to manage application and infrastructure secrets.
+2. Configure authentication methods (Kubernetes auth, OIDC, etc.).
+3. Provision secret engines and policy access rules.
+4. Integrate Vault with Kubernetes via Vault Agent Injector or CSI provider.
+5. Enable auditing, logging, and usage monitoring for security compliance.
+6. Produce documentation for secret lifecycle management and access procedures.
 
-1. Install ArgoCD in a dedicated Kubernetes cluster.
-2. Configure Codefresh for GitOps workflows.
-3. Set up ArgoCD applications for managing Kubernetes deployments.
-4. Integrate ArgoCD with GitHub for automated deployment triggers.
-5. Implement monitoring and alerting for ArgoCD deployments.
-6. Document GitOps processes and ArgoCD usage guidelines.
+### 5. Multi-Cloud Kubernetes Platform
+   GKE (Google Kubernetes Engine)
+1. Provision GKE clusters for NON-PROD and PROD environments.
+2. Configure network policies, RBAC, and secure cluster access.
+3. Deploy ArgoCD agents in each cluster for GitOps deployment execution.
+4. Install Vault Agent Injector for secure secret synchronization.
+5. Deploy Datadog agents for observability (logs, metrics, APM).
+6. Document GKE operational practices and disaster recovery procedures.
 
-## 4. HCP Vault (Secrets Management)
+    EKS (Amazon Elastic Kubernetes Service)
+1. Provision EKS clusters for NON-PROD and PROD environments.
+2. Configure VPC networking, security groups, and RBAC access controls.
+3. Deploy ArgoCD agents for cluster deployment management.
+4. Integrate Vault Agent Injector for secret delivery.
+5. Deploy Datadog agents for metrics, logs, and distributed tracing.
+6. Document EKS administrative operations and cluster maintenance procedures.
 
-1. Set up an HCP Vault instance for secrets management.
-2. Configure authentication methods for accessing Vault.
-3. Create secret engines and policies for managing application secrets.
-4. Integrate Vault with Kubernetes clusters for secret injection.
-5. Implement auditing and monitoring for Vault access.
-6. Document Vault setup and secret management procedures.
+### 6. Cloudflare (Global Load Balancer + WAF)
+1. Configure Cloudflare account and domain onboarding.
+2. Deploy Global Load Balancer routing traffic to GKE/EKS clusters.
+3. Implement WAF threat policies and rate-limiting protection.
+4. Enable security monitoring, analytics, and alerting.
+5. Document Cloudflare architecture, routing strategy, and operational processes.
 
-## 5. Multi-Cloud Kubernetes
-
-### GKE Clusters
-
-1. Create GKE clusters for NON PROD and PROD environments.
-2. Configure networking, security, and access controls for GKE clusters.
-3. Install ArgoCD agents in GKE clusters for GitOps deployments.
-4. Set up Vault Agent Injector for secret management in GKE.
-5. Deploy Datadog agents for monitoring and logging in GKE.
-6. Document GKE cluster setup and management procedures.
-
-### EKS Clusters
-
-1. Create EKS clusters for NON PROD and PROD environments.
-2. Configure networking, security, and access controls for EKS clusters.
-3. Install ArgoCD agents in EKS clusters for GitOps deployments.
-4. Set up Vault Agent Injector for secret management in EKS.
-5. Deploy Datadog agents for monitoring and logging in EKS.
-6. Document EKS cluster setup and management procedures.
-
-## 6. Cloudflare (Global Load Balancer, WAF Policies)
-
-1. Set up a Cloudflare account and configure the domain.
-2. Configure Global Load Balancer to route traffic to GKE and EKS clusters.
-3. Implement WAF policies for application security.
-4. Set up monitoring and alerting for Cloudflare traffic.
-5. Document Cloudflare configuration and management procedures.
-
-## 7. Datadog (Monitoring & Logging) Agents
-
-1. Create a Datadog account and set up the organization.
-2. Configure Datadog agents for logging, metrics, and APM in Kubernetes clusters.
-3. Set up dashboards and alerts for monitoring application performance.
-4. Integrate Datadog with GitHub Actions for CI/CD monitoring.
-5. Document Datadog setup and monitoring procedures.
+### 7. Datadog (Monitoring, Logging, and APM)
+1. Create and configure Datadog organization and integrations.
+2. Deploy Kubernetes monitoring agents (logs, metrics, traces).
+3. Build dashboards and alerts for application and infrastructure health.
+4. Integrate GitHub Actions CI/CD telemetry to track pipeline performance.
+5. Document monitoring standards, dashboards usage, and alert handling procedures.
