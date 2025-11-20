@@ -10,7 +10,7 @@ spec:
     name: in-cluster
     namespace: test-devops-develop
   source:
-    path: resources/codefresh/chart
+    path: helm/test-devops
     repoURL: https://github.com/extosoft-devsecops/test-devops.git
     targetRevision: develop
   syncPolicy:
