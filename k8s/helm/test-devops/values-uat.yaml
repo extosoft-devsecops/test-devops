@@ -1,5 +1,5 @@
 image:
-  tag: uat-cb39457
+  tag: uat-acda710
 
 app:
   replicaCount: 1
