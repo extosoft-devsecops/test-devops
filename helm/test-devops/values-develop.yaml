@@ -1,5 +1,0 @@
-image:
-  tag: dev-latest
-
-app:
-  replicaCount: 1

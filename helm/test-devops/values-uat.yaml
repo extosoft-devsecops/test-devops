@@ -1,5 +1,0 @@
-image:
-  tag: uat-28f1ef7
-
-app:
-  replicaCount: 1
