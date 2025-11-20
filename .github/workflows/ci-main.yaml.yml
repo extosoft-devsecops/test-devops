@@ -1,0 +1,160 @@
+name: CI/CD Pipeline (App Repo)
+
+on:
+  push:
+    branches:
+      - 'develop'  # Trigger Deploy to DEV
+      - 'main'     # Trigger Deploy to UAT
+    tags:
+      - 'v*'       # Trigger Build Only (Manual Deploy later)
+
+env:
+  GCP_PROJECT_ID: "your-gcp-project-id"
+  GCP_REGION: "asia-southeast1"
+  ARTIFACT_REPO: "your-repo-name"
+  IMAGE_NAME: "your-app-name"
+  GITOPS_REPO: "git@github.com:extosoft-devsecops/test-devops-manifests.git" # ชื่อ GitOps Repo (User/Repo)
+
+jobs:
+  # ------------------------------------------------------------------
+  # 1. QUALITY CHECK (Init -> Lint -> Unit Test)
+  # ------------------------------------------------------------------
+  quality-check:
+    name: Quality Check (Lint & Test)
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Starting Quality Check..."
+      - run: |
+          if [ -f package.json ]; then
+            npm install
+            if npm run lint --if-present; then
+              echo "Lint passed."
+            else
+              echo "Lint failed."
+              exit 1
+            fi
+          else
+            echo "No package.json found, skipping lint."
+          fi
+
+  # ------------------------------------------------------------------
+  # 2. BUILD, PUSH & SCAN IMAGE
+  # ------------------------------------------------------------------
+  build-push-scan:
+    name: Build, Push & Scan
+    needs: quality-check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write' # จำเป็นสำหรับ GCP Workload Identity
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }} # ส่งค่า Tag ไป Job ถัดไป
+      docker_image: ${{ steps.meta.outputs.tags }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # 2.1 Authenticate with Google Cloud
+      - id: 'auth'
+        name: 'Authenticate to GCP'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      # 2.2 Login to Artifact Registry
+      - name: 'Docker Login'
+        uses: 'docker/login-action@v2'
+        with:
+          registry: ${{ env.GCP_REGION }}-docker.pkg.dev
+          username: 'oauth2accesstoken'
+          password: ${{ steps.auth.outputs.access_token }}
+
+      # 2.3 Generate Metadata (Tags)
+      - name: Docker Metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha,format=short
+
+      # 2.4 Build and Push
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # 2.5 Scan Image (Trivy)
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.meta.outputs.tags }}
+          format: 'table'
+          exit-code: '1'       # Fail Pipeline ถ้าเจอ Critical
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+  # ------------------------------------------------------------------
+  # 3. UPDATE GITOPS REPO (Auto Deploy)
+  # ทำงานเฉพาะ Push Branch develop หรือ main (ไม่ทำตอน Push Tag)
+  # ------------------------------------------------------------------
+  update-gitops:
+    name: Update GitOps Manifest
+    needs: build-push-scan
+    # เงื่อนไข: รันเฉพาะ branch develop หรือ main
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout GitOps Repo
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ env.GITOPS_REPO }}
+          token: ${{ secrets.GITOPS_REPO_TOKEN }} # ใช้ PAT
+          ref: 'main' # ปกติ GitOps repo จะแก้ที่ branch main
+
+      - name: Install Kustomize
+        uses: imranismail/setup-kustomize@v2
+
+      - name: Determine Target Environment
+        id: target
+        run: |
+          if [[ ${{ github.ref }} == 'refs/heads/develop' ]]; then
+            echo "env_folder=overlays/development" >> $GITHUB_OUTPUT
+          elif [[ ${{ github.ref }} == 'refs/heads/main' ]]; then
+            echo "env_folder=overlays/uat" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update Image Tag
+        env:
+          NEW_IMAGE: ${{ needs.build-push-scan.outputs.image_tag }}
+        run: |
+          cd ${{ steps.target.outputs.env_folder }}
+          # คำสั่งนี้จะไปแก้ field 'newTag' หรือ 'image' ใน kustomization.yaml
+          kustomize edit set image app-image=$NEW_IMAGE
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions Bot"
+          git commit -am "Auto-deploy: Update image to ${{ github.sha }} on ${{ steps.target.outputs.env_folder }}"
+          git push origin main
+
+  # ------------------------------------------------------------------
+  # 4. SECURITY SCAN (DAST) - Optional
+  # หมายเหตุ: Job นี้จะรันหลังจากแก้ GitOps Repo แล้ว แต่อาจต้องรอ ArgoCD sync
+  # ------------------------------------------------------------------
+  security-scan-dast:
+    name: DAST Security Scan (OWASP ZAP)
+    needs: update-gitops
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Placeholder for DAST Security Scan using OWASP ZAP or similar tools."
