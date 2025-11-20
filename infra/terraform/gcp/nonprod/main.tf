@@ -11,11 +11,6 @@ terraform {
       source  = "hashicorp/kubernetes"
       version = ">= 2.30"
     }
-
-    helm = {
-      source  = "hashicorp/helm"
-      version = ">= 3.0.0"
-    }
   }
 }
 
@@ -82,8 +77,8 @@ resource "google_container_node_pool" "nonprod_nodes" {
   node_count = 1
 
   node_config {
-    # 4 vCPU / 16GB
-    machine_type = "e2-standard-4"
+    # 2 vCPU / 4GB
+    machine_type = "e2-medium"
     disk_type    = "pd-standard"
     disk_size_gb = 50
 
@@ -96,12 +91,13 @@ resource "google_container_node_pool" "nonprod_nodes" {
 
   autoscaling {
     min_node_count = 1
-    max_node_count = 3
+    max_node_count = 2
   }
 }
 
 ########################################
-# Kubernetes Provider (Non-Prod)
+# Kubernetes Provider (Non-Prod) 
+# Configure after cluster is created
 ########################################
 
 provider "kubernetes" {
@@ -112,84 +108,20 @@ provider "kubernetes" {
 }
 
 ########################################
-# Helm Provider (Non-Prod)
-########################################
-
-provider "helm" {
-  alias = "nonprod"
-  kubernetes = {
-    host                   = "https://${google_container_cluster.nonprod.endpoint}"
-    token                  = data.google_client_config.default.access_token
-    cluster_ca_certificate = base64decode(google_container_cluster.nonprod.master_auth[0].cluster_ca_certificate)
-  }
-}
-
-########################################
 # Namespaces (Non-Prod)
+# Create after cluster is ready for ArgoCD
 ########################################
 
 resource "kubernetes_namespace" "nonprod_app" {
   provider = kubernetes.nonprod
+
   metadata {
     name = "nonprod-app"
+    labels = {
+      environment = "nonprod"
+      managed-by  = "terraform"
+    }
   }
-}
-
-########################################
-# Helm Release (Non-Prod)
-########################################
-
-resource "helm_release" "nonprod_app" {
-  provider = helm.nonprod
-
-  name             = "test-devops-nonprod"
-  namespace        = kubernetes_namespace.nonprod_app.metadata[0].name
-  create_namespace = false
-
-  # NOTE: ถ้าย้ายตำแหน่งโฟลเดอร์ terraform แล้ว path นี้อาจต้องปรับตามโครงสร้าง repo จริง
-  chart   = "${path.root}/../../../../helm/test-devops"
-  wait    = false
-  timeout = 600
-  atomic  = false
-
-  values = [
-    yamlencode({
-      image = {
-        repository = "asia-southeast1-docker.pkg.dev/${var.project_id}/test-devops-images/test-devops"
-        tag        = "v1.1"
-        pullPolicy = "Always"
-      }
-
-      app = {
-        replicaCount = 1
-        port         = 3000
-        env = {
-          NODE_ENV    = "non-production"
-          STATSD_HOST = "graphite"
-          STATSD_PORT = "8125"
-        }
-      }
-
-      graphite = {
-        enabled     = true
-        image       = "graphiteapp/graphite-statsd"
-        tag         = "latest"
-        webPort     = 80
-        serviceType = "LoadBalancer"
-      }
-
-      env = "non-production"
-
-      ingress = {
-        enabled   = true
-        className = "gce"
-        hosts = [{
-          host  = var.ingress_host
-          paths = [{ path = "/", pathType = "Prefix" }]
-        }]
-      }
-    })
-  ]
 
   depends_on = [google_container_node_pool.nonprod_nodes]
 }
