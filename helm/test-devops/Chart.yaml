@@ -1,0 +1,6 @@
+apiVersion: v2
+name: test-devops
+description: A Helm chart for Test DevOps Node.js App + Graphite
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
