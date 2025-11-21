@@ -10,7 +10,7 @@ metadata:
 spec:
   project: cf-git-sources
   sources:
-  - repoURL: https://github.com/extosoft-devsecops/test-devops-gitops.git
+  - repoURL: https://github.com/extosoft-devsecops/test-devops.git
     path: git-sources/codefresh/default
     targetRevision: HEAD
     directory:
