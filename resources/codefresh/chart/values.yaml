@@ -16,3 +16,4 @@ gitops-runtime:
           key: token
     runtime:
       name: codefresh
+      isConfigurationRuntime: true
