@@ -20,6 +20,11 @@ lint: ## Lint the Helm chart
 	@echo "🔍 Linting Helm chart..."
 	helm lint $(CHART_DIR)
 
+.PHONY: template-local
+template-local: ## Generate templates for local environment
+	@echo "📄 Generating templates for local environment..."
+	helm template $(CHART_NAME)-local $(CHART_DIR) -f values-local.yaml
+
 .PHONY: template-develop
 template-develop: ## Generate templates for develop environment
 	@echo "📄 Generating templates for develop environment..."
@@ -191,6 +196,38 @@ logs-uat: ## View logs for UAT environment
 logs-prod: ## View logs for production environment
 	@echo "📋 Logs for production environment:"
 	kubectl logs -n $(NAMESPACE_PREFIX)-prod -l app=test-devops-app --tail=100 -f
+
+.PHONY: local-setup
+local-setup: ## Setup local Kubernetes (interactive helper)
+	@./setup-local-k8s.sh
+
+.PHONY: local-start
+local-start: ## Start local Kubernetes deployment (Docker Desktop/Minikube)
+	@./local-test.sh start
+
+.PHONY: local-stop
+local-stop: ## Stop local Kubernetes deployment
+	@./local-test.sh stop
+
+.PHONY: local-restart
+local-restart: ## Restart local Kubernetes deployment
+	@./local-test.sh restart
+
+.PHONY: local-status
+local-status: ## Check local deployment status
+	@./local-test.sh status
+
+.PHONY: local-logs
+local-logs: ## View local deployment logs
+	@./local-test.sh logs
+
+.PHONY: local-test
+local-test: ## Test local deployment
+	@./local-test.sh test
+
+.PHONY: local-cleanup
+local-cleanup: ## Cleanup local deployment (removes namespace)
+	@./local-test.sh cleanup
 
 .PHONY: package
 package: lint ## Package the Helm chart
