@@ -68,7 +68,7 @@ flowchart TD
 
 %% -------- Pull Request -------- %%
     subgraph PR_Flow [Pull Request Validation]
-        A1[Developer Creates PR \nto develop/main] --> A2[Init / Checkout Code]
+        A1[Developer Creates PR \n to develop/main] --> A2[Init / Checkout Code]
         A2 --> A3[Lint]
         A3 --> A4[Unit Test]
         A4 --> A5[SonarQube Code Scan]
@@ -99,7 +99,7 @@ flowchart TD
 %% -------- Push Tag -------- %%
     subgraph Tag_Flow ["Release CI Only Tag (vX.Y.Z)"]
         T1[Push Tag v*.*.*] --> T2[Build Image]
-        T2 --> T3[มฝมมมม SBOM + Sign + Scan]
+        T2 --> T3[SBOM + Sign + Scan]
         T3 --> T4[Ready for Manual Deploy]
     end
 
