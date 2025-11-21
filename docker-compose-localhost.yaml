@@ -3,42 +3,33 @@ services:
     container_name: test-devops-app
     build:
       context: .
-      dockerfile: Dockerfile
-      args:
-        NODE_ENV: development
     environment:
-      NODE_ENV: development
       PORT: 3000
-      STATSD_HOST: graphite
-      STATSD_PORT: 8125
+      NODE_ENV: local
+      ENABLE_METRICS: "true"
+      SERVICE_NAME: "test-devops"
+      DD_AGENT_HOST: datadog-agent
+      DD_DOGSTATSD_PORT: "8125"
+    depends_on:
+      - datadog-agent
     ports:
       - "3000:3000"
-    depends_on:
-      - graphite
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD-SHELL", "wget -qO- http://localhost:3000/healthz || exit 1" ]
-      interval: 10s
-      timeout: 3s
-      retries: 3
-    networks:
-      - local-test-devops-network
 
-  graphite:
-    image: graphiteapp/graphite-statsd:latest
-    container_name: graphite
-    restart: unless-stopped
+  datadog-agent:
+    container_name: datadog-agent
+    image: gcr.io/datadoghq/agent:latest
+    environment:
+      - DD_API_KEY=${DD_API_KEY}
+      - DD_SITE=datadoghq.com
+      - DD_ENV=local
+      - DD_HOSTNAME=local-dev
+      - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
+      - DD_DOGSTATSD_PORT=8125
+      - DD_LOGS_ENABLED=true
+      - DD_APM_ENABLED=true
+      - DD_PROCESS_AGENT_ENABLED=true
     ports:
-      - "8080:80"
       - "8125:8125/udp"
-      - "8126:8126"
+      - "8126:8126/tcp"
     volumes:
-      - local-graphite-data:/opt/graphite/storage
-    networks:
-      - local-test-devops-network
-
-volumes:
-  local-graphite-data:
-
-networks:
-  local-test-devops-network:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
