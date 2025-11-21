@@ -10,7 +10,7 @@ enterprise-grade CI/CD pipeline.
 |----------------------------|--------------------------------------------------|-----------------------|
 | SCM                        | Source versioning, branch policies, PR workflows | GitHub                |
 | CI                         | Build, test, code scan, image creation           | GitHub Actions        |
-| CD (GitOps)                | Automated deployment via Kubernetes manifests    | ArgoCD (Codefresh)    |
+| CD (GitOps)                | Automated deployment via Kubernetes manifests    | ArgoCD (Akuity)       |
 | Container Registry         | Image storage, multi-cloud distribution          | GCP Artifact Registry |
 | Secrets Management         | Centralized secure secrets & dynamic credentials | HCP Vault             |
 | Runtime Platforms          | Multi-cloud Kubernetes workloads                 | GKE (GCP), EKS (AWS)  |

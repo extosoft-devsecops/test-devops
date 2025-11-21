@@ -7,6 +7,9 @@ build:
 push:
 	docker push $(name):$(tag)
 
+build-graphite:
+	docker buildx build --platform linux/amd64,linux/arm64 -f Dockerfile.graphite -t $(name)-graphite:$(tag) .
+
 run-localhost:
 	docker compose -f docker-compose-localhost.yaml up --build
 

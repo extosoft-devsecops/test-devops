@@ -4,7 +4,7 @@
 - Source code management
 - CI pipeline build, test, lint, security scan (SAST), build container image
 
-2. ArgoCD (Codefresh) — GitOps CD 
+2. ArgoCD (Akuity) — GitOps CD 
 - Watch Git repo → auto-sync manifests
 - Deploy to GKE/EKS multi-cloud
 - Manage progressive rollout (Blue/Green, Canary)
@@ -49,7 +49,7 @@ flowchart LR
         AR[GCP Artifact Registry]
     end
 
-    subgraph GitOps[ArgoCD- Codefresh]
+    subgraph GitOps[ArgoCD- Akuity]
         ACD[ArgoCD Controller]
     end
 
