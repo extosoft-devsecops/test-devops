@@ -4,7 +4,7 @@ app:
   
 image:
   repository: asia-southeast1-docker.pkg.dev/test-devops-478606/test-devops-images/test-devops
-  tag: "latest"
+  tag: "v1.1"
   pullPolicy: IfNotPresent
 
 service:
