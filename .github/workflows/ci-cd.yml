@@ -135,7 +135,7 @@ jobs:
 
       - name: "Trivy Image Scan"
         run: |
-          echo "✅ Trivy Image Scan stage - PASSED (skipped for development)" >> "$GITHUB_OUTPUT"
+          echo "✅ Trivy Image Scan stage - PASSED (skipped for development)"
   #        uses: aquasecurity/trivy-action@0.28.0
   #        with:
   #          image-ref: ${{ steps.meta.outputs.image }}
