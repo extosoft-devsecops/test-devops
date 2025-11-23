@@ -78,6 +78,8 @@ jobs:
 
     outputs:
       image_full: ${{ steps.meta.outputs.image }}
+      image: ${{ steps.meta.outputs.image }}
+      tag: ${{ steps.meta.outputs.tag }}
 
     steps:
       - name: Checkout
@@ -111,6 +113,8 @@ jobs:
           fi
 
           IMAGE="${GAR_HOST}/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/${IMAGE_NAME}:${TAG}"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "TAG=${TAG}" >> $GITHUB_ENV           
 
           echo "image=${IMAGE}" >> $GITHUB_OUTPUT
           echo "IMAGE=${IMAGE}" >> $GITHUB_ENV
@@ -161,11 +165,11 @@ jobs:
           if [[ "${GITHUB_REF_NAME}" == "develop" ]]; then
             ENVIRONMENT="develop"
             # ใช้ไฟล์นี้สำหรับ deploy dev บน gke-nonprod
-            MANIFEST_PATH="resources/runtimes/codefresh/test-devops-develop.yaml"
+            MANIFEST_PATH="helm/app/values-develop.yaml"
           elif [[ "${GITHUB_REF_NAME}" == "main" ]]; then
             ENVIRONMENT="uat"
             # ใช้ไฟล์นี้สำหรับ deploy uat บน gke-nonprod
-            MANIFEST_PATH="resources/runtimes/codefresh/test-devops-uat.yaml"
+            MANIFEST_PATH="helm/app/values-uat.yaml"
           else
             echo "Unknown branch for deploy"
             exit 1
