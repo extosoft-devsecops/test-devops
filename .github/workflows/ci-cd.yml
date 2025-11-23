@@ -2,9 +2,9 @@ name: CI & CD
 
 on:
   pull_request:
-    branches: [develop, main]
+    branches: [ develop, main ]
   push:
-    branches: [develop, main]
+    branches: [ develop, main ]
     tags:
       - 'v*.*.*'   # Tag สำหรับ release image
 
@@ -78,7 +78,7 @@ jobs:
 
     outputs:
       image_full: ${{ steps.meta.outputs.image }}
-      image: ${{ steps.meta.outputs.image }}
+      image_name: ${{ steps.meta.outputs.image_name }}
       tag: ${{ steps.meta.outputs.tag }}
 
     steps:
@@ -113,6 +113,13 @@ jobs:
           fi
 
           IMAGE="${GAR_HOST}/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/${IMAGE_NAME}:${TAG}"
+          
+          echo "IMAGE_FULL: ${IMAGE}"
+          echo "IMAGE_NAME: ${IMAGE_NAME}"
+          echo "TAG: ${TAG}"
+          
+          echo "image_name=${IMAGE_NAME}" >> $GITHUB_OUTPUT
+          echo "IMAGE_NAME=${IMAGE_NAME}" >> $GITHUB_ENV
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
           echo "TAG=${TAG}" >> $GITHUB_ENV           
 
@@ -145,8 +152,16 @@ jobs:
 
     env:
       IMAGE_FULL: ${{ needs.build_and_scan_image.outputs.image_full }}
+      IMAGE_NAME: ${{ needs.build_and_scan_image.outputs.image_name }}
+      TAG: ${{ needs.build_and_scan_image.outputs.tag }}
 
     steps:
+      - name: "Check input"
+        run: |
+          echo "IMAGE_FULL: ${{ env.IMAGE_FULL }}"
+          echo "IMAGE_NAME: ${{ env.IMAGE_NAME }}"
+          echo "TAG: ${{ env.TAG }}"
+
       - name: Checkout GitOps repo (Codefresh runtime shared config)
         uses: actions/checkout@v4
         with:
@@ -180,14 +195,14 @@ jobs:
       - name: Update image tag in app manifest
         run: |
           MANIFEST="${{ steps.envinfo.outputs.manifest_path }}"
-          IMAGE="${{ env.IMAGE_FULL }}"
-
-          echo "Updating image in ${MANIFEST} to ${IMAGE}"
+          TAG="${{ env.TAG }}"
+        
+          echo "Updating image tag in ${MANIFEST} to ${TAG}"
 
           # NOTE:
           #   - ให้แน่ใจว่าในไฟล์มีบรรทัด image: ... อยู่แล้ว
           #   - ถ้าใช้ Helm/Kustomize อาจต้องปรับคำสั่งให้ใช้ yq/jq แทน sed
-          sed -i "s#image: .*#image: ${IMAGE}#g" "${MANIFEST}"
+          sed -i "s/^  tag:.*/  tag: \"${TAG}\"/g" "${MANIFEST}"
 
       - name: Commit & push
         run: |
