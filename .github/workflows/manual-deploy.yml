@@ -1,0 +1,96 @@
+name: Manual Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag (เช่น v1.0.0 หรือ develop-<sha>)'
+        required: true
+        type: string
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - develop
+          - uat
+          - production-gke
+          - production-eks
+
+env:
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GAR_HOST: asia-southeast1-docker.pkg.dev
+  GAR_REPOSITORY: test-devops-images
+  IMAGE_NAME: test-devops
+  GITOPS_REPO: extosoft-devsecops/test-devops-gitops
+  GITOPS_PAT: ${{ secrets.GITOPS_PAT }}
+
+jobs:
+  manual-deploy:
+    name: Manual Deploy to ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Checkout GitOps repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.GITOPS_REPO }}
+          token: ${{ env.GITOPS_PAT }}
+          fetch-depth: 0
+
+      - name: Set git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Build full image name
+        id: img
+        run: |
+          TAG="${{ github.event.inputs.image_tag }}"
+          IMAGE="${GAR_HOST}/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/${IMAGE_NAME}:${TAG}"
+          echo "image=${IMAGE}" >> $GITHUB_OUTPUT
+
+      - name: Determine manifest path by environment (Codefresh)
+        id: manifest
+        run: |
+          ENV="${{ github.event.inputs.environment }}"
+          case "$ENV" in
+            develop)
+              MANIFEST_PATH="resources/runtimes/codefresh/test-devops-develop.yaml"
+              ;;
+            uat)
+              MANIFEST_PATH="resources/runtimes/codefresh/test-devops-uat.yaml"
+              ;;
+            production-gke)
+              MANIFEST_PATH="resources/runtimes/codefresh/test-devops-production-gke.yaml"
+              ;;
+            production-eks)
+              MANIFEST_PATH="resources/runtimes/codefresh/test-devops-production-eks.yaml"
+              ;;
+            *)
+              echo "Unknown environment $ENV"
+              exit 1
+              ;;
+          esac
+          echo "path=${MANIFEST_PATH}" >> $GITHUB_OUTPUT
+
+      - name: Update image in manifest
+        run: |
+          MANIFEST="${{ steps.manifest.outputs.path }}"
+          IMAGE="${{ steps.img.outputs.image }}"
+
+          echo "Updating ${MANIFEST} to image ${IMAGE}"
+
+          sed -i "s#image: .*#image: ${IMAGE}#g" "${MANIFEST}"
+
+      - name: Commit & push
+        run: |
+          git status
+          if ! git diff --quiet; then
+            git add .
+            git commit -m "manual deploy ${{ github.event.inputs.environment }} -> ${{ steps.img.outputs.image }}"
+            git push
+          else
+            echo "No changes to commit"
+          fi
