@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "test-devops.fullname" . }}
+  labels:
+    {{- include "test-devops.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "test-devops.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "test-devops.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+        env:
+        - name: PORT
+          value: "3000"
+        - name: NODE_ENV
+          value: {{ .Values.env.nodeEnv | quote }}
+        - name: SERVICE_NAME
+          value: {{ .Values.env.serviceName | quote }}
+        - name: ENABLE_METRICS
+          value: {{ .Values.env.enableMetrics | quote }}
+        - name: DD_AGENT_HOST
+          {{- if .Values.datadog.enabled }}
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+          {{- else }}
+          value: {{ .Values.env.ddAgentHost | quote }}
+          {{- end }}
+        - name: DD_DOGSTATSD_PORT
+          value: {{ .Values.env.ddDogstatsdPort | quote }}
+        {{- if .Values.healthcheck.liveness.enabled }}
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.healthcheck.liveness.path }}
+            port: http
+          initialDelaySeconds: {{ .Values.healthcheck.liveness.initialDelaySeconds }}
+          periodSeconds: {{ .Values.healthcheck.liveness.periodSeconds }}
+        {{- end }}
+        {{- if .Values.healthcheck.readiness.enabled }}
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.healthcheck.readiness.path }}
+            port: http
+          initialDelaySeconds: {{ .Values.healthcheck.readiness.initialDelaySeconds }}
+          periodSeconds: {{ .Values.healthcheck.readiness.periodSeconds }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+

@@ -1,0 +1,83 @@
+# Default values for test-devops
+# Optimized for Docker Desktop Kubernetes
+
+replicaCount: 1
+
+image:
+  repository: asia-southeast1-docker.pkg.dev/test-devops-478606/test-devops-images/test-devops
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: NodePort
+  port: 3000
+  nodePort: 30080
+
+env:
+  serviceName: test-devops
+  nodeEnv: local
+  enableMetrics: "true"
+  ddAgentHost: localhost
+  ddDogstatsdPort: "8125"
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+healthcheck:
+  liveness:
+    enabled: true
+    path: /healthz
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  readiness:
+    enabled: true
+    path: /healthz
+    initialDelaySeconds: 5
+    periodSeconds: 5
+
+# Datadog Agent Configuration
+datadog:
+  enabled: true
+  apiKey: ""  # Set via --set datadog.apiKey=<YOUR_KEY> or create secret
+  site: "datadoghq.com"
+
+  agent:
+    image:
+      repository: gcr.io/datadoghq/agent
+      tag: "7"
+      pullPolicy: IfNotPresent
+
+    resources:
+      limits:
+        cpu: 200m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+
+    # DogStatsD configuration
+    dogstatsd:
+      enabled: true
+      port: 8125
+      useHostPort: true
+      nonLocalTraffic: true
+
+    # APM configuration
+    apm:
+      enabled: false
+      port: 8126
+
+    # Log collection
+    logs:
+      enabled: true
+      containerCollectAll: true
+
+    # Process monitoring
+    processAgent:
+      enabled: false
+

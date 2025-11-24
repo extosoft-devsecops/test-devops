@@ -1,0 +1,63 @@
+🎉 {{ .Chart.Name }} has been deployed!
+
+Release: {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+
+================================================================================
+🌐 ACCESS YOUR APPLICATION
+================================================================================
+
+{{- if eq .Values.service.type "NodePort" }}
+
+Your application is available at:
+
+  ✅ http://localhost:{{ .Values.service.nodePort }}
+
+Test it:
+
+  curl http://localhost:{{ .Values.service.nodePort }}/
+
+Health check:
+
+  curl http://localhost:{{ .Values.service.nodePort }}/healthz
+
+{{- else }}
+
+Port-forward to access:
+
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "test-devops.fullname" . }} 3000:3000
+
+Then open: http://localhost:3000
+
+{{- end }}
+
+================================================================================
+📊 USEFUL COMMANDS
+================================================================================
+
+View pods:
+  kubectl get pods -n {{ .Release.Namespace }}
+
+View logs:
+  kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "test-devops.name" . }} -f
+
+Get service:
+  kubectl get svc -n {{ .Release.Namespace }}
+
+Describe deployment:
+  kubectl describe deployment -n {{ .Release.Namespace }} {{ include "test-devops.fullname" . }}
+
+================================================================================
+🔄 UPDATE / UNINSTALL
+================================================================================
+
+Update:
+  helm upgrade {{ .Release.Name }} ./helm/test-devops -n {{ .Release.Namespace }}
+
+Uninstall:
+  helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }}
+
+================================================================================
+
+Happy Testing! 🚀
+
