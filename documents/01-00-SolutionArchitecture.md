@@ -1,4 +1,4 @@
-# Solution Architect
+# Solution Architecture
 
 1. Github  Github action (CI)
 - Source code management

@@ -28,9 +28,9 @@
 5. Connect GitHub Actions to Artifact Registry for automated image pushes.
 6. Provide documentation outlining image management and repository usage policies.
 
-### 3. ArgoCD + Akuity (GitOps Deployment)
+### 3. ArgoCD + Codefresh (GitOps Deployment)
 1. Deploy ArgoCD in a dedicated Kubernetes cluster for centralized control.
-2. Configure Akuity to integrate with GitOps workflows.
+2. Configure Codefresh to integrate with GitOps workflows.
 3. Define ArgoCD applications responsible for cluster deployments.
 4. Establish GitHub integration for automatic deployment on manifest updates.
 5. Set up monitoring and alerting for deployment failures or drift detection.

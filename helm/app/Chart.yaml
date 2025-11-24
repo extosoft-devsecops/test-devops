@@ -1,5 +1,0 @@
-apiVersion: v2
-name: test-devops-app
-description: Test DevOps Node.js app with DogStatsD metrics
-type: application
-version: 1.0.0
