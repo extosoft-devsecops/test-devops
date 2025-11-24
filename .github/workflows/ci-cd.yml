@@ -196,16 +196,16 @@ jobs:
           sed -i "s/^  tag:.*/  tag: \"${TAG}\"/g" "${MANIFEST}"
 
       - name: Commit & push
+        id: commit
         run: |
           git status
           if ! git diff --quiet; then
             git add .
             git commit -m "chore: deploy ${{ steps.envinfo.outputs.env }} with image ${{ env.IMAGE_FULL }}"
             git push
-            echo "Changes committed and pushed on gitops repo" >> "$GITHUB_OUTPUT"
+            echo "result=Changes committed and pushed on gitops repo" >> $GITHUB_OUTPUT
           else
-            echo "No changes to commit"
-            echo "No changes to commit" >> "$GITHUB_OUTPUT"
+            echo "result=No changes to commit" >> $GITHUB_OUTPUT
           fi
 
   security_scan:
@@ -219,7 +219,7 @@ jobs:
     steps:
       - name: Setup OWASP ZAP Scan
         run: | 
-          echo "✅ OWASP ZAP Scan stage - SKIPPED (for development)" >> "$GITHUB_OUTPUT"
+          echo "✅ OWASP ZAP Scan stage - SKIPPED (for development)"
 
 
 #      - name: Set target URL
