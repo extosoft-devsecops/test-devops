@@ -1,49 +1,87 @@
 # Default values for test-devops
-# Optimized for Docker Desktop Kubernetes
+# This configuration is optimized for Docker Desktop Kubernetes
+# For production use, adjust resources, replicas, and enable autoscaling
 
+# =============================================================================
+# Application Configuration
+# =============================================================================
+
+# Number of pod replicas
 replicaCount: 1
 
+# Docker image configuration
 image:
-  repository: asia-southeast1-docker.pkg.dev/test-devops-478606/test-devops-images/test-devops
+  # For Docker Desktop, use local image: test-devops
+  # For GKE/production, use: asia-southeast1-docker.pkg.dev/test-devops-478606/test-devops-images/test-devops
+  repository: test-devops
   tag: latest
   pullPolicy: IfNotPresent
 
+# Kubernetes Service configuration
 service:
-  type: NodePort
-  port: 3000
-  nodePort: 30080
+  type: NodePort          # NodePort for Docker Desktop, LoadBalancer for cloud
+  port: 3000              # Application port
+  nodePort: 30080        # Fixed NodePort (30000-32767) for easy local access
 
+# Application environment variables
 env:
-  serviceName: test-devops
-  nodeEnv: local
-  enableMetrics: "true"
-  ddAgentHost: localhost
-  ddDogstatsdPort: "8125"
+  serviceName: test-devops   # Service identifier
+  nodeEnv: local            # Environment: local, dev, staging, production
+  enableMetrics: "true"     # Enable metrics logging
+  ddAgentHost: localhost    # Datadog Agent host (auto-set when datadog.enabled=true)
+  ddDogstatsdPort: "8125"  # DogStatsD port
 
+# Resource limits and requests
+# For production, increase based on actual usage
 resources:
   limits:
-    cpu: 200m
-    memory: 256Mi
+    cpu: 200m           # Maximum CPU (0.2 cores)
+    memory: 256Mi       # Maximum memory
   requests:
-    cpu: 50m
-    memory: 64Mi
+    cpu: 50m            # Guaranteed CPU (0.05 cores)
+    memory: 64Mi        # Guaranteed memory
 
+# Health check probes
 healthcheck:
   liveness:
     enabled: true
-    path: /healthz
-    initialDelaySeconds: 10
-    periodSeconds: 10
+    path: /healthz                 # Health check endpoint
+    initialDelaySeconds: 10        # Wait before first check
+    periodSeconds: 10              # Check interval
+    timeoutSeconds: 5              # Request timeout
+    failureThreshold: 3            # Failures before restart
   readiness:
     enabled: true
-    path: /healthz
-    initialDelaySeconds: 5
-    periodSeconds: 5
+    path: /healthz                 # Readiness check endpoint
+    initialDelaySeconds: 5         # Wait before first check
+    periodSeconds: 5               # Check interval
+    timeoutSeconds: 3              # Request timeout
+    failureThreshold: 3            # Failures before marking not ready
 
+# Horizontal Pod Autoscaler (HPA)
+autoscaling:
+  enabled: false                   # Enable/disable HPA
+  minReplicas: 1                  # Minimum number of replicas
+  maxReplicas: 10                 # Maximum number of replicas
+  targetCPUUtilizationPercentage: 80    # CPU threshold for scaling
+  targetMemoryUtilizationPercentage: 80 # Memory threshold for scaling
+
+# =============================================================================
 # Datadog Agent Configuration
+# =============================================================================
+
 datadog:
-  enabled: true
-  apiKey: ""  # Set via --set datadog.apiKey=<YOUR_KEY> or create secret
+  # Enable/disable Datadog monitoring
+  # Set to false for local development without monitoring
+  enabled: false
+  
+  # Datadog API Key (required if enabled=true)
+  # Get from: https://app.datadoghq.com/organization-settings/api-keys
+  # Set via: --set datadog.apiKey=<YOUR_KEY>
+  apiKey: ""
+  
+  # Datadog site (depends on your region)
+  # Options: datadoghq.com (US), datadoghq.eu (EU), etc.
   site: "datadoghq.com"
 
   agent:
@@ -80,4 +118,27 @@ datadog:
     # Process monitoring
     processAgent:
       enabled: false
+
+# =============================================================================
+# Prometheus Monitoring (Optional)
+# =============================================================================
+
+prometheus:
+  # Enable/disable Prometheus ServiceMonitor
+  # Requires Prometheus Operator to be installed
+  enabled: false
+  
+  serviceMonitor:
+    # Metrics endpoint path
+    path: /metrics
+    
+    # Scrape interval
+    interval: 30s
+    
+    # Scrape timeout
+    scrapeTimeout: 10s
+    
+    # Additional labels for ServiceMonitor selector
+    additionalLabels: {}
+      # prometheus: kube-prometheus
 

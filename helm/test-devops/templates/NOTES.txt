@@ -1,7 +1,9 @@
-🎉 {{ .Chart.Name }} has been deployed!
+🎉 {{ .Chart.Name }} has been deployed successfully!
 
 Release: {{ .Release.Name }}
 Namespace: {{ .Release.Namespace }}
+Chart Version: {{ .Chart.Version }}
+App Version: {{ .Chart.AppVersion }}
 
 ================================================================================
 🌐 ACCESS YOUR APPLICATION
@@ -32,22 +34,88 @@ Then open: http://localhost:3000
 {{- end }}
 
 ================================================================================
-📊 USEFUL COMMANDS
+📊 MONITORING STATUS
+================================================================================
+
+{{- if .Values.datadog.enabled }}
+✅ Datadog Agent: ENABLED
+   - DogStatsD Port: {{ .Values.datadog.agent.dogstatsd.port }}
+   - APM: {{ if .Values.datadog.agent.apm.enabled }}ENABLED{{ else }}DISABLED{{ end }}
+   - Logs: {{ if .Values.datadog.agent.logs.enabled }}ENABLED{{ else }}DISABLED{{ end }}
+   
+   View Datadog Agent status:
+   kubectl exec -n {{ .Release.Namespace }} -it daemonset/{{ include "test-devops.fullname" . }}-datadog-agent -- agent status
+
+   Check metrics in Datadog:
+   https://app.{{ .Values.datadog.site }}/infrastructure
+{{- else }}
+⚠️  Datadog Agent: DISABLED
+   
+   To enable Datadog monitoring:
+   helm upgrade {{ .Release.Name }} ./helm/test-devops \
+     -n {{ .Release.Namespace }} \
+     --set datadog.enabled=true \
+     --set datadog.apiKey=<YOUR_API_KEY>
+{{- end }}
+
+{{- if .Values.prometheus.enabled }}
+✅ Prometheus ServiceMonitor: ENABLED
+   - Metrics Path: {{ .Values.prometheus.serviceMonitor.path }}
+   - Scrape Interval: {{ .Values.prometheus.serviceMonitor.interval }}
+{{- end }}
+
+{{- if .Values.autoscaling.enabled }}
+✅ Horizontal Pod Autoscaler: ENABLED
+   - Min Replicas: {{ .Values.autoscaling.minReplicas }}
+   - Max Replicas: {{ .Values.autoscaling.maxReplicas }}
+   - CPU Target: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}%
+   - Memory Target: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}%
+{{- else }}
+⚠️  Autoscaling: DISABLED (Fixed {{ .Values.replicaCount }} replica{{ if gt .Values.replicaCount 1.0 }}s{{ end }})
+{{- end }}
+
+================================================================================
+📋 USEFUL COMMANDS
 ================================================================================
 
 View pods:
   kubectl get pods -n {{ .Release.Namespace }}
 
-View logs:
+View logs (follow):
   kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "test-devops.name" . }} -f
 
-Get service:
-  kubectl get svc -n {{ .Release.Namespace }}
+View all resources:
+  kubectl get all -n {{ .Release.Namespace }}
 
 Describe deployment:
   kubectl describe deployment -n {{ .Release.Namespace }} {{ include "test-devops.fullname" . }}
 
+{{- if .Values.autoscaling.enabled }}
+
+Check HPA status:
+  kubectl get hpa -n {{ .Release.Namespace }}
+  kubectl describe hpa -n {{ .Release.Namespace }} {{ include "test-devops.fullname" . }}
+{{- end }}
+
+Restart deployment:
+  kubectl rollout restart deployment -n {{ .Release.Namespace }} {{ include "test-devops.fullname" . }}
+
+Uninstall:
+  helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }}
+
 ================================================================================
+💡 TIPS
+================================================================================
+
+• For production, enable autoscaling: --set autoscaling.enabled=true
+• Monitor with Datadog: --set datadog.enabled=true --set datadog.apiKey=<KEY>
+• Increase resources for production workloads in values.yaml
+• Use Ingress instead of NodePort for production deployments
+
+================================================================================
+
+Happy Testing! 🎉
+
 🔄 UPDATE / UNINSTALL
 ================================================================================
 

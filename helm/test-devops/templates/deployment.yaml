@@ -5,7 +5,9 @@ metadata:
   labels:
     {{- include "test-devops.labels" . | nindent 4 }}
 spec:
+  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "test-devops.selectorLabels" . | nindent 6 }}
@@ -13,11 +15,28 @@ spec:
     metadata:
       labels:
         {{- include "test-devops.selectorLabels" . | nindent 8 }}
+      annotations:
+        # Prometheus metrics scraping (if enabled)
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/metrics"
     spec:
+      # Security context for the pod
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
       - name: {{ .Chart.Name }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
+        # Security context for the container
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
         ports:
         - name: http
           containerPort: 3000
@@ -48,6 +67,8 @@ spec:
             port: http
           initialDelaySeconds: {{ .Values.healthcheck.liveness.initialDelaySeconds }}
           periodSeconds: {{ .Values.healthcheck.liveness.periodSeconds }}
+          timeoutSeconds: {{ .Values.healthcheck.liveness.timeoutSeconds }}
+          failureThreshold: {{ .Values.healthcheck.liveness.failureThreshold }}
         {{- end }}
         {{- if .Values.healthcheck.readiness.enabled }}
         readinessProbe:
@@ -56,6 +77,8 @@ spec:
             port: http
           initialDelaySeconds: {{ .Values.healthcheck.readiness.initialDelaySeconds }}
           periodSeconds: {{ .Values.healthcheck.readiness.periodSeconds }}
+          timeoutSeconds: {{ .Values.healthcheck.readiness.timeoutSeconds }}
+          failureThreshold: {{ .Values.healthcheck.readiness.failureThreshold }}
         {{- end }}
         resources:
           {{- toYaml .Values.resources | nindent 10 }}
