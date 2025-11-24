@@ -176,10 +176,10 @@ jobs:
         run: |
           if [[ "${GITHUB_REF_NAME}" == "develop" ]]; then
             ENVIRONMENT="develop"
-            MANIFEST_PATH="helm/app/values-develop.yaml"
+            MANIFEST_PATH="helm/test-devops/values-develop.yaml"
           elif [[ "${GITHUB_REF_NAME}" == "main" ]]; then
             ENVIRONMENT="uat"
-            MANIFEST_PATH="helm/app/values-uat.yaml"
+            MANIFEST_PATH="helm/test-devops/values-uat.yaml"
           else
             echo "Unknown branch for deploy"
             exit 1

@@ -46,3 +46,30 @@ flowchart LR
 
 Helm chart for deploying Datadog Agent alongside your application for monitoring and logging.
 
+### Prerequisites
+- Docker Desktop with Kubernetes enabled
+- kubectl configured
+- helm 3.x installed
+
+### Quick Start
+
+#### 1. Build & Deploy
+**Without Datadog (Local Testing):**
+
+```bash
+# จาก root ของ project
+./helm/test-devops/deploy.sh
+```
+
+**With Datadog:**
+
+```bash
+# Build Docker image
+docker build -t test-devops:latest .
+# Deploy with Helm + Datadog
+helm upgrade --install test-devops ./helm/test-devops \
+  --namespace test-devops \
+  --create-namespace \
+  --set datadog.apiKey=<YOUR_DATADOG_API_KEY> \
+  --wait
+```

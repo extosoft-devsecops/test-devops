@@ -14,8 +14,8 @@ on:
         options:
           - develop
           - uat
-          - production-gke
-          - production-eks
+          - prod-gke
+          - prod-eks
 
 env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
@@ -57,16 +57,16 @@ jobs:
           ENV="${{ github.event.inputs.environment }}"
           case "$ENV" in
             develop)
-              MANIFEST_PATH="resources/runtimes/codefresh/test-devops-develop.yaml"
+              MANIFEST_PATH="helm/test-devops/values-develop.yaml"
               ;;
             uat)
-              MANIFEST_PATH="resources/runtimes/codefresh/test-devops-uat.yaml"
+              MANIFEST_PATH="helm/test-devops/values-uat.yaml"
               ;;
-            production-gke)
-              MANIFEST_PATH="resources/runtimes/codefresh/test-devops-production-gke.yaml"
+            prod-gke)
+              MANIFEST_PATH="helm/test-devops/values-prod-gke.yaml"
               ;;
-            production-eks)
-              MANIFEST_PATH="resources/runtimes/codefresh/test-devops-production-eks.yaml"
+            prod-eks)
+              MANIFEST_PATH="helm/test-devops/values-prod-eks.yaml"
               ;;
             *)
               echo "Unknown environment $ENV"
@@ -75,14 +75,13 @@ jobs:
           esac
           echo "path=${MANIFEST_PATH}" >> $GITHUB_OUTPUT
 
-      - name: Update image in manifest
+      - name: Update image tag in app manifest
         run: |
-          MANIFEST="${{ steps.manifest.outputs.path }}"
-          IMAGE="${{ steps.img.outputs.image }}"
-
-          echo "Updating ${MANIFEST} to image ${IMAGE}"
-
-          sed -i "s#image: .*#image: ${IMAGE}#g" "${MANIFEST}"
+          MANIFEST="${{ steps.envinfo.outputs.manifest_path }}"
+          TAG="${{ env.TAG }}"
+          
+          echo "Updating image tag in ${MANIFEST} to ${TAG}"
+          sed -i "s/^  tag:.*/  tag: \"${TAG}\"/g" "${MANIFEST}"
 
       - name: Commit & push
         run: |
