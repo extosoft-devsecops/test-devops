@@ -77,7 +77,8 @@ jobs:
 
       - name: Update image tag in app manifest
         run: |
-          MANIFEST="${{ steps.envinfo.outputs.manifest_path }}"
+          MANIFEST="${{ steps.manifest.outputs.path }}"
+          
           TAG="${{ env.TAG }}"
           
           echo "Updating image tag in ${MANIFEST} to ${TAG}"
