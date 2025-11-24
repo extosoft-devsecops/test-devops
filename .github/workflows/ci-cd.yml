@@ -40,19 +40,20 @@ jobs:
 
       - name: Lint
         run: |
-          echo "✅ Lint stage - PASSED (skipped for development)"
           echo "This stage would normally run: npm run lint"
+          echo "✅ Lint stage - PASSED (skipped for development)"
         # run: npm run lint
 
       - name: Unit Test
         run: |
-          echo "✅ Unit Test stage - PASSED (skipped for development)" >> "$GITHUB_OUTPUT"
+          echo "This stage would normally run unit tests"
+          echo "✅ Unit Test stage - PASSED (skipped for development)"
         # run: npm test -- --ci --coverage
 
       - name: SonarQube Scan
         run: |
-          echo "✅ SonarQube Scan stage - PASSED (skipped for development)" >> "$GITHUB_OUTPUT"
-          echo "This stage would normally scan code quality and security" >> "$GITHUB_OUTPUT"
+          echo "This stage would normally scan code quality and security"
+          echo "✅ SonarQube Scan stage - PASSED (skipped for development)"
         # uses: sonarsource/sonarqube-scan-action@v2
         # env:
         #   SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
@@ -135,6 +136,7 @@ jobs:
 
       - name: "Trivy Image Scan"
         run: |
+          echo "This stage would normally run Trivy image scan"
           echo "✅ Trivy Image Scan stage - PASSED (skipped for development)"
   #        uses: aquasecurity/trivy-action@0.28.0
   #        with:
@@ -191,10 +193,6 @@ jobs:
           TAG="${{ env.TAG }}"
           
           echo "Updating image tag in ${MANIFEST} to ${TAG}"
-
-          # NOTE:
-          #   - ให้แน่ใจว่าในไฟล์มีบรรทัด image: ... อยู่แล้ว
-          #   - ถ้าใช้ Helm/Kustomize อาจต้องปรับคำสั่งให้ใช้ yq/jq แทน sed
           sed -i "s/^  tag:.*/  tag: \"${TAG}\"/g" "${MANIFEST}"
 
       - name: Commit & push
@@ -220,7 +218,8 @@ jobs:
 
     steps:
       - name: Setup OWASP ZAP Scan
-        run: echo "✅ OWASP ZAP Scan stage - SKIPPED (for development)" >> "$GITHUB_OUTPUT"
+        run: | 
+          echo "✅ OWASP ZAP Scan stage - SKIPPED (for development)" >> "$GITHUB_OUTPUT"
 
 
 #      - name: Set target URL
