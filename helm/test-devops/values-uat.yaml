@@ -11,7 +11,7 @@ replicaCount: 2
 # Docker image configuration
 image:
   repository: asia-southeast1-docker.pkg.dev/test-devops-478606/test-devops-images/test-devops
-  tag: "main-130be50"
+  tag: "main-5123241"
   pullPolicy: Always  # Always pull for UAT testing
 
 # Kubernetes Service configuration
