@@ -6,17 +6,15 @@ on:
   push:
     branches: [ develop, main ]
     tags:
-      - 'v*.*.*'   # Tag สำหรับ release image
+      - 'v*.*.*'
 
 env:
   NODE_VERSION: '18.x'
-  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}   # = test-devops-478606
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-  GAR_HOST: asia-southeast1-docker.pkg.dev       # Artifact Registry
-  GAR_REPOSITORY: test-devops-images             # repo จากรูปที่คุณส่งมา
-  IMAGE_NAME: test-devops                        # ชื่อ image
-  #SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-  #SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  GAR_HOST: asia-southeast1-docker.pkg.dev
+  GAR_REPOSITORY: test-devops-images
+  IMAGE_NAME: test-devops
   GITOPS_REPO: extosoft-devsecops/test-devops-gitops
   GITOPS_PAT: ${{ secrets.GITOPS_PAT }}
 
@@ -39,30 +37,11 @@ jobs:
         run: npm ci
 
       - name: Lint
-        run: |
-          echo "This stage would normally run: npm run lint"
-          echo "✅ Lint stage - PASSED (skipped for development)"
-        # run: npm run lint
+        run: npm run lint
 
       - name: Unit Test
-        run: |
-          echo "This stage would normally run unit tests"
-          echo "✅ Unit Test stage - PASSED (skipped for development)"
-        # run: npm test -- --ci --coverage
+        run: npm run test:coverage
 
-      #- name: SonarQube Scan
-        #run: |
-        #  echo "This stage would normally scan code quality and security"
-        #  echo "✅ SonarQube Scan stage - PASSED (skipped for development)"
-        # uses: sonarsource/sonarqube-scan-action@v2
-        # env:
-        #   SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
-        #   SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
-        # with:
-        #   projectBaseDir: .
-        #   args: >
-        #     -Dsonar.projectKey=test-devops
-        #     -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@v3
         env:
@@ -73,11 +52,11 @@ jobs:
           args: >
             -Dsonar.projectKey=test-devops
             -Dsonar.projectName=test-devops
-            -Dsonar.sources=index.js
+            -Dsonar.sources=index.js,index.test.js
             -Dsonar.sourceEncoding=UTF-8
             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-            -Dsonar.exclusions=**/*.test.js,**/node_modules/**,**/coverage/**
-            -Dsonar.test.inclusions=**/*.test.js
+            -Dsonar.exclusions=**/node_modules/**,**/coverage/**
+            -Dsonar.test.inclusions=index.test.js
             -Dsonar.verbose=true
 
   build_and_scan_image:
@@ -151,15 +130,12 @@ jobs:
           tags: ${{ steps.meta.outputs.image }}
 
       - name: "Trivy Image Scan"
-        run: |
-          echo "This stage would normally run Trivy image scan"
-          echo "✅ Trivy Image Scan stage - PASSED (skipped for development)"
-  #        uses: aquasecurity/trivy-action@0.28.0
-  #        with:
-  #          image-ref: ${{ steps.meta.outputs.image }}
-  #          format: 'table'
-  #          severity: 'CRITICAL,HIGH'
-  #          ignore-unfixed: true
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.meta.outputs.image }}
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
 
   deploy_gitops:
     name: Deploy (update Codefresh GitOps repo)
@@ -231,29 +207,37 @@ jobs:
     if: |
       github.event_name == 'push' &&
       (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main')
-
     steps:
-      - name: Setup OWASP ZAP Scan
-        run: | 
-          echo "✅ OWASP ZAP Scan stage - SKIPPED (for development)"
-
-
-#      - name: Set target URL
-#        id: url
-#        run: |
-#          if [[ "${GITHUB_REF_NAME}" == "develop" ]]; then
-#            TARGET_URL="https://dev.test-devops.example.com"
-#          elif [[ "${GITHUB_REF_NAME}" == "main" ]]; then
-#            TARGET_URL="https://uat.test-devops.example.com"
-#          else
-#            echo "Unknown branch for ZAP target"
-#            exit 1
-#          fi
-#          echo "target=${TARGET_URL}" >> $GITHUB_OUTPUT
-#
-#      - name: OWASP ZAP Baseline Scan
-#        uses: zaproxy/action-baseline@v0.12.0
-#        with:
-#          target: ${{ steps.url.outputs.target }}
-#          rules_file_name: ''
-#          cmd_options: '-a'
+      - name: Set target URL
+        id: url
+        run: |
+          case "${GITHUB_REF_NAME}" in
+            develop)
+              echo "target=https://test-devops-dev.extosoft.app" >> $GITHUB_OUTPUT
+              ;;
+            main)
+              echo "target=https://test-devops-uat.extosoft.app/" >> $GITHUB_OUTPUT
+              ;;
+            *)
+              echo "Unknown branch for ZAP target"
+              exit 1
+              ;;
+          esac
+      - name: OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: ${{ steps.url.outputs.target }}
+          rules_file_name: ''
+          cmd_options: '-a -J zap-report.json'
+        continue-on-error: true
+      - name: Upload ZAP Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-report
+          path: zap-report.json
+      - name: Fail if critical/high found
+        run: |
+          if grep -q '"risk": "High"' zap-report.json || grep -q '"risk": "Critical"' zap-report.json; then
+            echo "Critical/High vulnerabilities found!"
+            exit 1
+          fi
