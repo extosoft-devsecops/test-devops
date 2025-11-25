@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: test-devops-uat
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io/foreground
+spec:
+  project: default
+  destination:
+    name: in-cluster
+    namespace: gke-nonprod-test-devops-uat
+  source:
+    path: helm/test-devops
+    repoURL: https://github.com/extosoft-devsecops/test-devops-gitops.git
+    targetRevision: HEAD
+    helm:
+      valueFiles:
+        - values-uat.yaml
+      parameters:
+        - name: global.environment
+          value: uat
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - PrunePropagationPolicy=foreground
+      - Replace=false
+      - PruneLast=false
+      - Validate=true
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=false
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=false
