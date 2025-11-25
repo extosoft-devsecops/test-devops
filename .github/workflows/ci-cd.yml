@@ -17,7 +17,7 @@ env:
   IMAGE_NAME: test-devops                        # ชื่อ image
   #SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
   #SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-  GITOPS_REPO: extosoft-devsecops/test-devops
+  GITOPS_REPO: extosoft-devsecops/test-devops-gitops
   GITOPS_PAT: ${{ secrets.GITOPS_PAT }}
 
 jobs:
