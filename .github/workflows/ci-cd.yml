@@ -50,10 +50,10 @@ jobs:
           echo "✅ Unit Test stage - PASSED (skipped for development)"
         # run: npm test -- --ci --coverage
 
-      - name: SonarQube Scan
-        run: |
-          echo "This stage would normally scan code quality and security"
-          echo "✅ SonarQube Scan stage - PASSED (skipped for development)"
+      #- name: SonarQube Scan
+        #run: |
+        #  echo "This stage would normally scan code quality and security"
+        #  echo "✅ SonarQube Scan stage - PASSED (skipped for development)"
         # uses: sonarsource/sonarqube-scan-action@v2
         # env:
         #   SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
@@ -63,6 +63,22 @@ jobs:
         #   args: >
         #     -Dsonar.projectKey=test-devops
         #     -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+      - name: SonarQube Scan
+        uses: onarsource/sonarqube-scan-action@v3
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          projectBaseDir: .
+          args: >
+            -Dsonar.projectKey=test-devops
+            -Dsonar.projectName=test-devops
+            -Dsonar.sources=index.js
+            -Dsonar.sourceEncoding=UTF-8
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.exclusions=**/*.test.js,**/node_modules/**,**/coverage/**
+            -Dsonar.test.inclusions=**/*.test.js
+            -Dsonar.verbose=true
 
   build_and_scan_image:
     name: Build & Push Image (multi-arch) + Trivy Scan
