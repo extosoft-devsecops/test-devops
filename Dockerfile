@@ -62,13 +62,12 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 
 # ==========================================
-# Healthcheck (using wget instead of curl for smaller footprint)
+# Healthcheck (using wget instead of curl for smaller footprint) 
 # ==========================================
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
   CMD wget -qO- http://localhost:3000/healthz >/dev/null || exit 1
 
 EXPOSE 3000
-
 
 # Start Production App
 CMD ["node", "index.js"]

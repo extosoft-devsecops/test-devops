@@ -1,0 +1,115 @@
+# UAT Environment Configuration
+# Override values for UAT environment deployed on GKE nonprod cluster
+
+# =============================================================================
+# Application Configuration
+# =============================================================================
+
+# Number of pod replicas (moderate for UAT)
+replicaCount: 2
+
+# Docker image configuration
+image:
+  repository: asia-southeast1-docker.pkg.dev/test-devops-478606/test-devops-images/test-devops
+  tag: uat-latest  # Will be updated by CI/CD pipeline with actual tag like uat-abc1234
+  pullPolicy: Always  # Always pull for UAT testing
+
+# Kubernetes Service configuration
+service:
+  type: LoadBalancer  # LoadBalancer for GKE
+  port: 3000
+
+# Application environment variables
+env:
+  serviceName: test-devops
+  nodeEnv: uat
+  enableMetrics: "true"
+  ddAgentHost: datadog-agent
+  ddDogstatsdPort: "8125"
+
+# Resource limits and requests (UAT - closer to production)
+resources:
+  limits:
+    cpu: 1000m     # 1 core max
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+# Health check probes
+healthcheck:
+  liveness:
+    enabled: true
+    path: /health  # Updated to match actual endpoint
+    initialDelaySeconds: 20
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    path: /health  # Updated to match actual endpoint
+    initialDelaySeconds: 15
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# Horizontal Pod Autoscaler (enabled for UAT testing)
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 75
+  targetMemoryUtilizationPercentage: 80
+
+# =============================================================================
+# Datadog Agent Configuration
+# =============================================================================
+
+datadog:
+  enabled: true  # Enable full monitoring in UAT
+  apiKey: ""  # Set via ArgoCD secret or --set flag
+  site: "datadoghq.com"
+
+  agent:
+    image:
+      repository: gcr.io/datadoghq/agent
+      tag: "7"
+      pullPolicy: IfNotPresent
+
+    resources:
+      limits:
+        cpu: 300m
+        memory: 768Mi
+      requests:
+        cpu: 150m
+        memory: 384Mi
+
+    dogstatsd:
+      enabled: true
+      port: 8125
+      useHostPort: true
+      nonLocalTraffic: true
+
+    apm:
+      enabled: true  # Enable APM for performance testing
+      port: 8126
+
+    logs:
+      enabled: true
+      containerCollectAll: true
+
+    processAgent:
+      enabled: true  # Enable process monitoring in UAT
+
+# =============================================================================
+# Prometheus Monitoring
+# =============================================================================
+
+prometheus:
+  enabled: true  # Enable Prometheus in UAT
+  serviceMonitor:
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+    additionalLabels:
+      environment: uat

@@ -1,0 +1,116 @@
+# Production Environment Configuration
+# Override values for production environment deployed on GKE prod cluster
+
+# =============================================================================
+# Application Configuration
+# =============================================================================
+
+# Number of pod replicas (high for production)
+replicaCount: 3
+
+# Docker image configuration
+image:
+  repository: asia-southeast1-docker.pkg.dev/test-devops-478606/test-devops-images/test-devops
+  tag: v1.0.0  # Will be updated with semantic version tags like v1.2.3
+  pullPolicy: IfNotPresent  # Don't pull if image exists (for stability)
+
+# Kubernetes Service configuration
+service:
+  type: LoadBalancer  # LoadBalancer for GKE
+  port: 3000
+
+# Application environment variables
+env:
+  serviceName: test-devops
+  nodeEnv: production
+  enableMetrics: "true"
+  ddAgentHost: datadog-agent
+  ddDogstatsdPort: "8125"
+
+# Resource limits and requests (production)
+resources:
+  limits:
+    cpu: 2000m     # 2 cores max
+    memory: 2Gi
+  requests:
+    cpu: 500m      # Guaranteed 0.5 core
+    memory: 512Mi
+
+# Health check probes (stricter for production)
+healthcheck:
+  liveness:
+    enabled: true
+    path: /health  # Updated to match actual endpoint
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    path: /health  # Updated to match actual endpoint
+    initialDelaySeconds: 20
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# Horizontal Pod Autoscaler (enabled for production)
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 75
+
+# =============================================================================
+# Datadog Agent Configuration
+# =============================================================================
+
+datadog:
+  enabled: true  # Full monitoring in production
+  apiKey: ""  # Set via ArgoCD secret or --set flag
+  site: "datadoghq.com"
+
+  agent:
+    image:
+      repository: gcr.io/datadoghq/agent
+      tag: "7"
+      pullPolicy: IfNotPresent
+
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1Gi
+      requests:
+        cpu: 200m
+        memory: 512Mi
+
+    dogstatsd:
+      enabled: true
+      port: 8125
+      useHostPort: true
+      nonLocalTraffic: true
+
+    apm:
+      enabled: true  # Full APM in production
+      port: 8126
+
+    logs:
+      enabled: true
+      containerCollectAll: true
+
+    processAgent:
+      enabled: true  # Full process monitoring
+
+# =============================================================================
+# Prometheus Monitoring
+# =============================================================================
+
+prometheus:
+  enabled: true  # Full Prometheus monitoring
+  serviceMonitor:
+    path: /metrics
+    interval: 15s  # More frequent scraping in production
+    scrapeTimeout: 10s
+    additionalLabels:
+      environment: production
+      tier: backend

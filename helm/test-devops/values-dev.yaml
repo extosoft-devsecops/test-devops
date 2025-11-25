@@ -1,0 +1,115 @@
+# Development Environment Configuration
+# Override values for dev environment deployed on GKE nonprod cluster
+
+# =============================================================================
+# Application Configuration
+# =============================================================================
+
+# Number of pod replicas (lower for dev)
+replicaCount: 1
+
+# Docker image configuration
+image:
+  repository: asia-southeast1-docker.pkg.dev/test-devops-478606/test-devops-images/test-devops
+  tag: dev-latest  # Will be updated by CI/CD pipeline with actual tag like dev-abc1234
+  pullPolicy: Always  # Always pull latest dev images
+
+# Kubernetes Service configuration
+service:
+  type: LoadBalancer  # LoadBalancer for GKE
+  port: 3000
+  # nodePort not needed for LoadBalancer
+
+# Application environment variables
+env:
+  serviceName: test-devops
+  nodeEnv: development
+  enableMetrics: "true"
+  ddAgentHost: datadog-agent  # Datadog agent service name
+  ddDogstatsdPort: "8125"
+
+# Resource limits and requests (dev environment)
+resources:
+  limits:
+    cpu: 500m      # Higher for development testing
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Health check probes
+healthcheck:
+  liveness:
+    enabled: true
+    path: /health  # Updated to match actual endpoint
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    path: /health  # Updated to match actual endpoint
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# Horizontal Pod Autoscaler (disabled for dev)
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# =============================================================================
+# Datadog Agent Configuration
+# =============================================================================
+
+datadog:
+  enabled: true  # Enable monitoring in dev
+  apiKey: ""  # Set via ArgoCD secret or --set flag
+  site: "datadoghq.com"
+
+  agent:
+    image:
+      repository: gcr.io/datadoghq/agent
+      tag: "7"
+      pullPolicy: IfNotPresent
+
+    resources:
+      limits:
+        cpu: 200m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+
+    dogstatsd:
+      enabled: true
+      port: 8125
+      useHostPort: true
+      nonLocalTraffic: true
+
+    apm:
+      enabled: true  # Enable APM for dev
+      port: 8126
+
+    logs:
+      enabled: true
+      containerCollectAll: true
+
+    processAgent:
+      enabled: false
+
+# =============================================================================
+# Prometheus Monitoring
+# =============================================================================
+
+prometheus:
+  enabled: false  # Optional for dev
+  serviceMonitor:
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+    additionalLabels: {}
