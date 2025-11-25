@@ -1,4 +1,30 @@
 # Data Architect
+This architecture shows how the system collects and sends metrics, logs, traces, and system resource data from the application and database to Datadog for monitoring and analysis.
+
+1. User Layer
+- End users send requests to the application, generating traffic that produces logs, metrics, and traces.
+
+2. Workload Layer
+- Application (Node.js) handles user requests.
+- Database processes queries and generates query-related telemetry.
+
+3. Telemetry Export Layer
+- Metrics exported via StatsD.
+- Traces collected using OpenTelemetry.
+- Logs forwarded through STDOUT.
+- Database telemetry includes slow-query logs and database traces.
+
+4. System Resource Collection
+- Collects container and node-level resource usage (CPU, memory, disk, IO).
+- Database resource usage is also monitored separately.
+
+5. Datadog Agent Layer
+- Datadog Agent receives metrics, logs, traces, and system metrics.
+- Performs processing and securely forwards data to Datadog.
+
+6. Datadog Platform
+- Provides dashboards, log analysis, APM tracing, system monitoring, and alerting.
+- Enables performance insights, troubleshooting, and SLO-based alerting.
 
 ```mermaid
 flowchart LR
