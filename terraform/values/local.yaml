@@ -1,0 +1,34 @@
+# Helm values for local environment
+image:
+  repository: ${image_repository}
+  tag: ${image_tag}
+  pullPolicy: IfNotPresent
+
+replicaCount: ${replica_count}
+
+env:
+  serviceName: ${service_name}
+  nodeEnv: ${node_env}
+  enableMetrics: "true"
+
+service:
+  type: NodePort
+  port: 3000
+  nodePort: 30080
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+autoscaling:
+  enabled: false
+
+datadog:
+  enabled: false
+
+prometheus:
+  enabled: false

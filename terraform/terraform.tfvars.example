@@ -1,0 +1,78 @@
+# =============================================================================
+# Terraform Variables - Example Configuration
+# Copy this file to terraform.tfvars and adjust values
+# =============================================================================
+
+# Kubernetes Configuration
+kubeconfig_path = "~/.kube/config"
+kube_context    = "docker-desktop"  # or "gke_project_region_cluster" for GKE
+namespace       = "test-devops"
+environment     = "local"           # local, develop, uat, production
+
+# Helm Configuration
+release_name     = "test-devops"
+helm_chart_path  = "../helm/test-devops"
+
+# Application Configuration
+image_repository = "test-devops"    # or "asia-southeast1-docker.pkg.dev/project/repo/image"
+image_tag        = "latest"
+service_name     = "test-devops"
+replica_count    = 1
+
+# Service Configuration
+service_type      = "NodePort"      # NodePort, LoadBalancer, ClusterIP
+service_node_port = 30080
+
+# Autoscaling Configuration
+autoscaling_enabled      = false
+autoscaling_min_replicas = 1
+autoscaling_max_replicas = 10
+
+# Monitoring Configuration
+datadog_enabled    = false
+datadog_api_key    = ""             # Set your Datadog API key
+prometheus_enabled = false
+
+# =============================================================================
+# Example Configurations for Different Environments
+# =============================================================================
+
+# Local Development (Docker Desktop)
+# kube_context    = "docker-desktop"
+# environment     = "local"
+# image_repository = "test-devops"
+# service_type    = "NodePort"
+# datadog_enabled = false
+
+# Development Environment (GKE)
+# kube_context     = "gke_test-devops-478606_asia-southeast1_gke-nonprod"
+# environment      = "develop"
+# image_repository = "asia-southeast1-docker.pkg.dev/test-devops-478606/test-devops-images/test-devops"
+# image_tag        = "develop-abc1234"
+# service_type     = "LoadBalancer"
+# datadog_enabled  = true
+# datadog_api_key  = "your-api-key"
+
+# UAT Environment (GKE)
+# kube_context     = "gke_test-devops-478606_asia-southeast1_gke-nonprod"
+# environment      = "uat"
+# image_repository = "asia-southeast1-docker.pkg.dev/test-devops-478606/test-devops-images/test-devops"
+# image_tag        = "main-def5678"
+# service_type     = "LoadBalancer"
+# replica_count    = 2
+# autoscaling_enabled = true
+# datadog_enabled  = true
+# prometheus_enabled = true
+
+# Production Environment
+# kube_context     = "gke_test-devops-478606_asia-southeast1_gke-prod"
+# environment      = "production"
+# image_repository = "asia-southeast1-docker.pkg.dev/test-devops-478606/test-devops-images/test-devops"
+# image_tag        = "v1.0.0"
+# service_type     = "LoadBalancer"
+# replica_count    = 3
+# autoscaling_enabled = true
+# autoscaling_min_replicas = 2
+# autoscaling_max_replicas = 20
+# datadog_enabled  = true
+# prometheus_enabled = true

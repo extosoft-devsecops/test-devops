@@ -1,0 +1,37 @@
+# Helm values for UAT environment
+image:
+  repository: ${image_repository}
+  tag: ${image_tag}
+  pullPolicy: Always
+
+replicaCount: ${replica_count}
+
+env:
+  serviceName: ${service_name}
+  nodeEnv: ${node_env}
+  enableMetrics: "true"
+
+service:
+  type: LoadBalancer
+  port: 3000
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+datadog:
+  enabled: true
+
+prometheus:
+  enabled: true

@@ -71,7 +71,7 @@ Then open: http://localhost:3000
    - CPU Target: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}%
    - Memory Target: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}%
 {{- else }}
-⚠️  Autoscaling: DISABLED (Fixed {{ .Values.replicaCount }} replica{{ if gt .Values.replicaCount 1.0 }}s{{ end }})
+⚠️  Autoscaling: DISABLED (Fixed {{ .Values.replicaCount }} replica{{ if gt (int .Values.replicaCount) 1 }}s{{ end }})
 {{- end }}
 
 ================================================================================

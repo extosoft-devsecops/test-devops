@@ -1,0 +1,33 @@
+# Helm values for develop environment
+image:
+  repository: ${image_repository}
+  tag: ${image_tag}
+  pullPolicy: Always
+
+replicaCount: ${replica_count}
+
+env:
+  serviceName: ${service_name}
+  nodeEnv: ${node_env}
+  enableMetrics: "true"
+
+service:
+  type: LoadBalancer
+  port: 3000
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+
+datadog:
+  enabled: true
+
+prometheus:
+  enabled: false

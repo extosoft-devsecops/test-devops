@@ -1,170 +1,465 @@
-# 🚀 Quick Start
+# 🚀 Quick Start Guide
 
-## 1. Quick Start - Docker Desktop Compose
+เลือกวิธี deploy ที่เหมาะกับคุณ:
 
-### ขั้นตอนง่ายๆ 2 ขั้น
+| วิธีการ | เหมาะสำหรับ | ความซับซ้อน |
+|---------|------------|-----------|
+| 🐳 [Docker Compose](#1-docker-compose) | Local development ง่ายที่สุด | ⭐ |
+| ☸️ [Kubernetes + Helm](#2-kubernetes--helm) | Kubernetes native, Production-ready | ⭐⭐ |
+| 🏗️ [Terraform](#3-terraform-infrastructure-as-code) | Infrastructure as Code, Multi-environment | ⭐⭐⭐ |
 
-#### 1️⃣ Build & Run Application
+---
 
-.env ตัวอย่าง
+## 1. Docker Compose
+
+**เหมาะสำหรับ:** Local development, ทดสอบ features
+
+### 📦 Requirements
+
+- Docker Desktop
+- Docker Compose
+
+### 🚀 Deploy
+
+**Step 1: เตรียม Environment Variables**
+
+สร้างไฟล์ `.env`:
+
 ```bash
 DD_API_KEY=<YOUR_DATADOG_API_KEY>
 ```
 
+**Step 2: Run Application**
+
 ```bash
-# รัน Docker Compose
 docker compose -f docker-compose-localhost.yaml --env-file .env up --build
 ```
 
-#### 2️⃣ เข้าถึง Application
+**Step 3: Access Application**
 
 ```bash
-# เปิดบราวเซอร์
 open http://localhost:3000
-
-# หรือทดสอบด้วย curl
+# หรือ
 curl http://localhost:3000/
 ```
 
----
-
-### ✅ สิ่งที่ได้
-
-- ✅ Application running on Docker
-- ✅ Port mapping (3000)
-- ✅ Easy local development
-
----
-
-### 📋 Commands
+### 📋 Management Commands
 
 ```bash
-# ดู containers
+# ดู status
 docker-compose -f docker-compose-localhost.yaml ps
 
 # ดู logs
 docker-compose -f docker-compose-localhost.yaml logs -f
 
-# หยุด containers
+# Restart
+docker-compose -f docker-compose-localhost.yaml restart
+
+# Stop
 docker-compose -f docker-compose-localhost.yaml down
 ```
 
----
+### ✅ Features
 
-### 🔧 แก้โค้ดและ Deploy ใหม่
-
-```bash
-# 1. แก้โค้ดใน index.js
-vim index.js
-
-# 2. Restart containers
-docker-compose -f docker-compose-localhost.yaml restart
-```
+- ✅ Simple one-command deployment
+- ✅ Hot reload support
+- ✅ Easy debugging
+- ✅ Quick iteration
 
 ---
 
-## 2. Quick Start - Docker Desktop Kubernetes
+## 2. Kubernetes + Helm
 
-### ขั้นตอนง่ายๆ 3 ขั้น
+**เหมาะสำหรับ:** Production deployment, Advanced features
 
-#### 1️⃣ เปิด Kubernetes ใน Docker Desktop
+### 📦 Requirements
 
-```
+- Docker Desktop with Kubernetes enabled
+- kubectl
+- Helm 3.x
+- Docker image built
+
+### 🚀 Deploy
+
+**Step 1: Enable Kubernetes**
+
+```text
 Docker Desktop → Settings → Kubernetes → ✅ Enable Kubernetes → Apply
 ```
 
-#### 2️⃣ Build & Deploy Application
+**Step 2: Build Docker Image**
 
 ```bash
-# 1. สร้าง Docker image
 docker build -t test-devops:latest .
+```
 
-# 2. Deploy ด้วย Helm (เลือก 1 จาก 2 วิธี)
+**Step 3: Deploy with Helm**
 
-# วิธีที่ 1: Deploy without Datadog (เหมาะสำหรับการทดสอบ)
+**Option A: Without Monitoring (Quick Start)**
+
+```bash
 helm install test-devops ./helm/test-devops \
   --namespace test-devops \
   --create-namespace \
-  --wait
-
-# วิธีที่ 2: Deploy with Datadog (สำหรับ monitoring แบบเต็มรูปแบบ)
-# ต้องมี Datadog API Key จาก https://app.datadoghq.com/organization-settings/api-keys
-helm install test-devops ./helm/test-devops \
-  --namespace test-devops \
-  --create-namespace \
-  --set datadog.apiKey=<YOUR_DATADOG_API_KEY> \
-  --set datadog.enabled=true \
   --wait
 ```
 
-> **💡 วิธีหา Datadog API Key:**
-> 1. ไปที่ [Datadog API Keys](https://app.datadoghq.com/organization-settings/api-keys)
-> 2. คลิก "New Key" หรือคัดลอก key ที่มีอยู่
-> 3. นำ API Key มาใส่แทน `<YOUR_DATADOG_API_KEY>`
-> 4. หรือเก็บไว้ในไฟล์ `.env` และใช้คำสั่ง: `--set datadog.apiKey=$DD_API_KEY`
-
-
-#### 3️⃣ เข้าถึง Application
+**Option B: With Datadog Monitoring**
 
 ```bash
-# เปิดบราวเซอร์
-open http://localhost:30080
+helm install test-devops ./helm/test-devops \
+  --namespace test-devops \
+  --create-namespace \
+  --set datadog.enabled=true \
+  --set datadog.apiKey=<YOUR_DATADOG_API_KEY> \
+  --wait
+```
 
-# หรือทดสอบด้วย curl
+> 💡 **Get Datadog API Key:** [https://app.datadoghq.com/organization-settings/api-keys](https://app.datadoghq.com/organization-settings/api-keys)
+
+**Step 4: Access Application**
+
+```bash
+open http://localhost:30080
+# หรือ
 curl http://localhost:30080/
 ```
 
----
-
-### ✅ สิ่งที่ได้
-
-- ✅ Deployment บน Kubernetes
-- ✅ Service (NodePort 30080)
-- ✅ Health checks (liveness & readiness)
-- ✅ Resource limits
-- ✅ Metrics logging
-
----
-
-### 📋 Commands
+### 📋 Management Commands
 
 ```bash
+# ดู resources
+kubectl get all -n test-devops
+
 # ดู pods
 kubectl get pods -n test-devops
 
 # ดู logs
 kubectl logs -n test-devops -l app.kubernetes.io/name=test-devops -f
 
-# ดู service
-kubectl get svc -n test-devops
+# Update configuration
+helm upgrade test-devops ./helm/test-devops -n test-devops
 
-# ลบ deployment
+# Rollback
+helm rollback test-devops -n test-devops
+
+# Uninstall
 helm uninstall test-devops -n test-devops
 ```
 
----
-
-### 🔧 แก้โค้ดและ Deploy ใหม่
+### 🔄 Update Workflow
 
 ```bash
-# 1. แก้โค้ดใน index.js
+# 1. แก้ไขโค้ด
 vim index.js
 
 # 2. Build image ใหม่
 docker build -t test-devops:latest .
 
 # 3. Restart pods
-kubectl rollout restart deployment -n test-devops
+kubectl rollout restart deployment/test-devops-test-devops -n test-devops
+
+# หรือ upgrade helm
+helm upgrade test-devops ./helm/test-devops -n test-devops --wait
+```
+
+### ✅ Features
+
+- ✅ Health checks (liveness & readiness)
+- ✅ Resource limits & requests
+- ✅ Auto-restart on failure
+- ✅ Service discovery
+- ✅ ConfigMap & Secrets support
+- ✅ Optional: Datadog monitoring
+- ✅ Optional: Prometheus metrics
+- ✅ Optional: Horizontal Pod Autoscaler
+
+---
+
+## 3. Terraform (Infrastructure as Code)
+
+**เหมาะสำหรับ:** Production, Multi-environment, GitOps
+
+### 📦 Requirements
+
+- Terraform >= 1.0
+- Docker Desktop with Kubernetes enabled
+- kubectl
+- Docker image built
+
+### 🚀 Deploy
+
+**Step 1: Install Terraform**
+
+```bash
+# macOS
+brew install terraform
+
+# Verify
+terraform version
+```
+
+**Step 2: Configure**
+
+```bash
+cd terraform
+
+# สร้าง configuration file
+cp terraform.tfvars.example terraform.tfvars
+
+# แก้ไข values
+vim terraform.tfvars
+```
+
+**Example `terraform.tfvars`:**
+
+```hcl
+# Kubernetes
+kubeconfig_path = "~/.kube/config"
+kube_context    = "docker-desktop"
+namespace       = "test-devops-tf"
+environment     = "local"
+
+# Application
+image_repository = "test-devops"
+image_tag        = "latest"
+replica_count    = 1
+
+# Service
+service_type      = "NodePort"
+service_node_port = 30080
+
+# Monitoring
+datadog_enabled = true
+datadog_api_key = "<YOUR_DATADOG_API_KEY>"
+```
+
+**Step 3: Build Image**
+
+```bash
+cd ..
+docker build -t test-devops:latest .
+cd terraform
+```
+
+**Step 4: Deploy**
+
+```bash
+# Initialize (first time only)
+terraform init
+
+# Preview changes
+terraform plan
+
+# Deploy
+terraform apply
+
+# หรือ auto-approve
+terraform apply -auto-approve
+```
+
+**Step 5: Verify**
+
+```bash
+# ดู outputs
+terraform output
+
+# Access application
+open http://localhost:30080
+```
+
+### 📋 Management Commands
+
+**View State:**
+
+```bash
+# Current state
+terraform show
+
+# Outputs
+terraform output
+terraform output deployment_info
+
+# Resource list
+terraform state list
+
+# Refresh state
+terraform refresh
+```
+
+**Update Resources:**
+
+```bash
+# Scale replicas
+terraform apply -var="replica_count=3"
+
+# Update image
+terraform apply -var="image_tag=v2.0.0"
+
+# Enable autoscaling
+terraform apply -var="autoscaling_enabled=true"
+
+# Change service type
+terraform apply -var="service_type=LoadBalancer"
+```
+
+**Manage Environment:**
+
+```bash
+# Local
+terraform apply \
+  -var="environment=local" \
+  -var="kube_context=docker-desktop"
+
+# Development (GKE)
+terraform apply \
+  -var="environment=develop" \
+  -var="kube_context=gke_project_region_cluster" \
+  -var="image_repository=gcr.io/project/image"
+
+# UAT/Production
+terraform apply \
+  -var="environment=uat" \
+  -var="replica_count=2" \
+  -var="autoscaling_enabled=true"
+```
+
+**Destroy:**
+
+```bash
+terraform destroy
+# หรือ
+terraform destroy -auto-approve
+```
+
+### 🔒 Security Best Practices
+
+**Use Environment Variables for Secrets:**
+
+```bash
+export TF_VAR_datadog_api_key="your-api-key"
+terraform apply
+```
+
+**Or use separate secrets file:**
+
+```bash
+# สร้าง secrets.tfvars (เพิ่มใน .gitignore)
+echo 'datadog_api_key = "your-key"' > secrets.tfvars
+
+# Apply with secrets
+terraform apply -var-file="secrets.tfvars"
+```
+
+### 🛠️ Development Workflow
+
+```bash
+# 1. แก้ไขโค้ด
+vim ../index.js
+
+# 2. Build image
+docker build -t test-devops:latest ..
+
+# 3. Update infrastructure
+terraform apply -var="image_tag=latest"
+
+# 4. Verify
+kubectl get pods -n test-devops-tf
+curl http://localhost:30080
+```
+
+### ✅ Features
+
+- ✅ Infrastructure as Code (version controlled)
+- ✅ Automated namespace & secrets creation
+- ✅ Idempotent deployments
+- ✅ State management
+- ✅ Multi-environment support
+- ✅ Dependency management
+- ✅ Plan before apply
+- ✅ Easy rollback
+- ✅ Integration with CI/CD
+
+---
+
+## 📊 Comparison
+
+| Feature | Docker Compose | Kubernetes + Helm | Terraform |
+|---------|---------------|-------------------|-----------|
+| Setup Time | ⚡ 1 min | ⚡⚡ 5 min | ⚡⚡⚡ 10 min |
+| Learning Curve | ⭐ Easy | ⭐⭐ Medium | ⭐⭐⭐ Advanced |
+| Production Ready | ❌ No | ✅ Yes | ✅ Yes |
+| Scalability | ❌ Limited | ✅ Excellent | ✅ Excellent |
+| Multi-Environment | ❌ No | ⚠️ Manual | ✅ Yes |
+| Infrastructure as Code | ❌ No | ⚠️ Partial | ✅ Yes |
+| Auto-scaling | ❌ No | ✅ Yes | ✅ Yes |
+| Health Checks | ❌ Basic | ✅ Advanced | ✅ Advanced |
+| Rollback | ⚠️ Manual | ✅ Easy | ✅ Easy |
+| State Management | ❌ No | ⚠️ Helm | ✅ Terraform |
+
+---
+
+## 📚 Additional Resources
+
+- **Helm Chart Documentation**: [`helm/test-devops/README.md`](helm/test-devops/README.md)
+- **Helm Values Reference**: [`helm/test-devops/values.yaml`](helm/test-devops/values.yaml)
+- **Terraform Guide**: [`terraform/README.md`](terraform/README.md)
+- **Datadog Setup**: [`helm/test-devops/DATADOG.md`](helm/test-devops/DATADOG.md)
+
+---
+
+## 🆘 Troubleshooting
+
+### Docker Compose
+
+```bash
+# Port already in use
+docker-compose -f docker-compose-localhost.yaml down
+lsof -ti:3000 | xargs kill -9
+
+# Rebuild from scratch
+docker-compose -f docker-compose-localhost.yaml down -v
+docker-compose -f docker-compose-localhost.yaml up --build
+```
+
+### Kubernetes + Helm
+
+```bash
+# Helm install failed
+helm uninstall test-devops -n test-devops
+kubectl delete namespace test-devops
+helm install test-devops ./helm/test-devops --namespace test-devops --create-namespace
+
+# Pods not starting
+kubectl describe pod <pod-name> -n test-devops
+kubectl logs <pod-name> -n test-devops
+
+# Port already in use
+kubectl get svc -A | grep 30080
+kubectl delete svc <service-name> -n <namespace>
+```
+
+### Terraform
+
+```bash
+# State locked
+terraform force-unlock <lock-id>
+
+# State out of sync
+terraform refresh
+
+# Start fresh
+terraform destroy -auto-approve
+rm -rf .terraform terraform.tfstate*
+terraform init
+terraform apply
+
+# Validation errors
+terraform fmt
+terraform validate
 ```
 
 ---
 
-## 📚 เอกสารเพิ่มเติม
-
-- **Full README**: `helm/test-devops/README.md`
-- **Helm values**: `helm/test-devops/values.yaml`
-
----
-
-**Happy Testing! 🎉**
+## 🎉 Happy Testing
 

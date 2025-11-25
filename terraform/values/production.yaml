@@ -1,0 +1,37 @@
+# Helm values for production environment
+image:
+  repository: ${image_repository}
+  tag: ${image_tag}
+  pullPolicy: IfNotPresent
+
+replicaCount: ${replica_count}
+
+env:
+  serviceName: ${service_name}
+  nodeEnv: ${node_env}
+  enableMetrics: "true"
+
+service:
+  type: LoadBalancer
+  port: 3000
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+datadog:
+  enabled: true
+
+prometheus:
+  enabled: true
