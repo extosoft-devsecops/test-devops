@@ -142,3 +142,23 @@ prometheus:
     additionalLabels: {}
       # prometheus: kube-prometheus
 
+# =============================================================================
+# Vault Integration (Optional)
+# =============================================================================
+
+vault:
+  # Enable/disable Vault integration
+  enabled: false
+
+  # Vault server address
+  address: ""
+
+  skipTLSVerify: "false"
+
+  roleName: ""
+
+  serviceAccount: ""
+
+  secrets:
+    secretPath: ""
+    fields: {}

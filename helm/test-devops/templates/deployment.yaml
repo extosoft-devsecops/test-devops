@@ -60,6 +60,23 @@ spec:
           {{- end }}
         - name: DD_DOGSTATSD_PORT
           value: {{ .Values.env.ddDogstatsdPort | quote }}
+        {{- if .Values.vault.enabled }}
+        - name: VAULT_ADDR
+          value: {{ .Values.vault.address | quote }}
+        - name: VAULT_SKIP_VERIFY
+          value: {{ .Values.vault.skipTLSVerify | quote }}
+        - name: VAULT_ROLE
+          value: {{ .Values.vault.roleName | quote }}
+        - name: VAULT_SERVICE_ACCOUNT
+          value: {{ .Values.vault.serviceAccount | quote }}
+        {{- range $field := .Values.vault.secrets.fields }}
+        - name: {{ $field }}
+          valueFrom:
+            secretKeyRef:
+              name: {{ $.Release.Name }}-vault-{{ $.Values.vault.secrets.secretPath | replace "/" "-" | lower }}
+              key: {{ $field | lower }}
+        {{- end }}
+        {{- end }}
         {{- if .Values.healthcheck.liveness.enabled }}
         livenessProbe:
           httpGet:
@@ -82,4 +99,3 @@ spec:
         {{- end }}
         resources:
           {{- toYaml .Values.resources | nindent 10 }}
-

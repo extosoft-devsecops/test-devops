@@ -114,3 +114,15 @@ prometheus:
     additionalLabels:
       environment: production
       tier: backend
+
+# =============================================================================
+# Vault Configuration
+# =============================================================================
+
+vault:
+  enabled: true
+  address: "http://vault.vault.svc.cluster.local:8200"
+  token: "prod-root-token"
+  secretPaths:
+    - path: secret/data/prod/app
+      env: VAULT_APP_SECRET

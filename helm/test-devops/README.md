@@ -253,7 +253,48 @@ helm/test-devops/
 3. Restart deployment: `kubectl rollout restart deployment -n test-devops`
 4. ทดสอบ: `curl http://localhost:30080/`
 
+## Vault Integration (dev/uat/prod)
+
+- เปิดใช้งาน Vault ได้ใน values-dev.yaml, values-uat.yaml, values-prod.yaml
+- ค่า env ที่ต้องการจาก Vault จะถูก inject เป็น environment variable ใน Pod
+- สามารถกำหนด secretPath และ map field → env ตามตัวอย่างด้านล่าง
+- รองรับการตั้งค่า skipTLSVerify, roleName, serviceAccount สำหรับ production-grade integration
+
+ตัวอย่าง config:
+
+```yaml
+vault:
+  enabled: true
+  address: "https://vault-devops.extosoft.app"
+  skipTLSVerify: "true"
+  roleName: "k8s-app"
+  serviceAccount: "vault-auth"
+  secrets:
+    secretPath: "secret/data/k8s/test-devops-uat"
+    fields:
+      port: "PORT"
+      serviceName: "SERVICE_NAME"
+      nodeEnv: "NODE_ENV"
+      enableMetrics: "ENABLE_METRICS"
+      ddDogstatsdPort: "DD_DOGSTATSD_PORT"
+      ddAgentHost: "DD_AGENT_HOST"
+```
+
+- สามารถใช้ External Secrets Operator หรือ Vault Agent Injector เพื่อ map secrets จาก Vault เป็น env ใน Pod อัตโนมัติ
+- ตัวอย่างการ deploy:
+
+```bash
+helm upgrade --install test-devops ./helm/test-devops \
+  --namespace test-devops \
+  --create-namespace \
+  -f ./helm/test-devops/values-uat.yaml \
+  --wait
+```
+
+> **หมายเหตุ:**
+> - ถ้าใช้ External Secrets Operator ให้ดูตัวอย่าง CRD และ values.yaml ที่เหมาะสมในเอกสาร Vault/ESO
+> - ถ้าใช้ Vault Agent Injector ให้ดูตัวอย่าง annotation และการ map env ใน deployment.yaml
+
 ---
 
 **Happy Testing! 🚀**
-
