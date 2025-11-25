@@ -128,10 +128,19 @@ process.on("SIGTERM", () => shutdown("SIGTERM"));
 // =============================
 // ▶️ Start App
 // =============================
-server.listen(PORT, () => {
-    console.log(`🚀 App running at port ${PORT}`);
-    mainLoop().catch((err) => {
-        console.error("❌ Unexpected error:", err);
-        process.exit(1);
+if (require.main === module) {
+    server.listen(PORT, () => {
+        console.log(`🚀 App running at port ${PORT}`);
+        mainLoop().catch((err) => {
+            console.error("❌ Unexpected error:", err);
+            process.exit(1);
+        });
     });
-});
+}
+
+// เพิ่มฟังก์ชัน start/stop สำหรับ unit test
+module.exports = {
+    server,
+    start: (cb) => server.listen(PORT, cb),
+    stop: (cb) => server.close(cb),
+};

@@ -5,12 +5,20 @@
   "main": "index.js",
   "scripts": {
     "dev": "node index.js",
-    "test": "echo \"PASS\" && exit 0",
-    "lint": "echo \"PASS\" && exit 0"
+    "test": "jest --detectOpenHandles --forceExit",
+    "test:coverage": "jest --detectOpenHandles --forceExit",
+    "lint": "eslint ."
   },
   "author": "",
   "license": "UNLICENSED",
   "dependencies": {
     "hot-shots": "^11.2.0"
-  }
+  },
+  "devDependencies": {
+    "eslint": "^8.56.0",
+    "globals": "^16.5.0",
+    "jest": "^30.2.0",
+    "supertest": "^7.1.4"
+  },
+  "type": "module"
 }
