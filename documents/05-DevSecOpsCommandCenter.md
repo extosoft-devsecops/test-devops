@@ -7,7 +7,7 @@
 ### uat environment
 <img width="1237" height="424" alt="image" src="https://github.com/user-attachments/assets/fbde9e86-190c-46f6-a04d-d93efd9e82f6" />
 
-## Application metrics 
+## Application metrics (statd)
 ### dev environment
 <img width="1504" height="849" alt="image" src="https://github.com/user-attachments/assets/b342df73-59a8-41cf-b523-83d10a4cfd82" />
 
